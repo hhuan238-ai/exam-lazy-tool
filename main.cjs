@@ -36,8 +36,8 @@ function createMiniWindow() {
   if (miniWindow && !miniWindow.isDestroyed()) return miniWindow;
 
   miniWindow = new BrowserWindow({
-    width: 70,
-    height: 260,
+    width: 82,
+    height: 330,
     frame: false,
     resizable: false,
     transparent: true,
@@ -67,6 +67,14 @@ function positionMiniWindow() {
   win.setPosition(area.x + area.width - width - 12, area.y + Math.round((area.height - height) / 2));
 }
 
+function resizeMiniWindow(width, height) {
+  const win = createMiniWindow();
+  win.setResizable(true);
+  win.setSize(width, height);
+  win.setResizable(false);
+  positionMiniWindow();
+}
+
 function showMiniMode() {
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.hide();
   const win = createMiniWindow();
@@ -84,6 +92,8 @@ function restoreMainWindow() {
 
 ipcMain.handle("window:mini", () => showMiniMode());
 ipcMain.handle("window:restore", () => restoreMainWindow());
+ipcMain.handle("mini:expand", () => resizeMiniWindow(460, 760));
+ipcMain.handle("mini:collapse", () => resizeMiniWindow(82, 330));
 ipcMain.handle("window:minimize", () => {
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.minimize();
 });

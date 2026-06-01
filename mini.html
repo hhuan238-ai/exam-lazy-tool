@@ -5,13 +5,67 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>考試懶人工具側邊模式</title>
     <link rel="stylesheet" href="mini.css" />
+    <script defer src="node_modules/xlsx/dist/xlsx.full.min.js"></script>
     <script defer src="mini.js"></script>
   </head>
   <body>
-    <button class="dock" id="restoreApp" type="button" title="開啟考試懶人工具" aria-label="開啟考試懶人工具">
-      <span class="badge">考</span>
-      <span class="icon">ƒ</span>
-      <span class="dots"></span>
-    </button>
+    <main class="mini-shell" id="miniShell">
+      <section class="rail" aria-label="快速模型">
+        <button class="rail-button" type="button" data-tool="forecast" title="一般預測">
+          <span>預</span>
+        </button>
+        <button class="rail-button" type="button" data-tool="smoothing" title="指數平滑">
+          <span>α</span>
+        </button>
+        <button class="rail-button" type="button" data-tool="bass" title="Bass model">
+          <span>B</span>
+        </button>
+        <button class="rail-button ghost" id="restoreApp" type="button" title="回主視窗">
+          <span>↗</span>
+        </button>
+      </section>
+
+      <section class="tool-panel" id="toolPanel" hidden>
+        <header class="mini-head">
+          <div>
+            <p class="eyebrow">Quick Tool</p>
+            <h1 id="toolTitle">一般預測</h1>
+          </div>
+          <button class="small-btn" id="collapsePanel" type="button">收合</button>
+        </header>
+
+        <div class="mode-tabs">
+          <button class="mode-tab active" type="button" data-tool="forecast">一般預測</button>
+          <button class="mode-tab" type="button" data-tool="smoothing">指數平滑</button>
+          <button class="mode-tab" type="button" data-tool="bass">Bass</button>
+        </div>
+
+        <label class="field">
+          貼上資料
+          <textarea id="quickData" rows="7" placeholder="period,demand&#10;1,120&#10;2,132&#10;3,128"></textarea>
+        </label>
+
+        <div class="file-line">
+          <label class="file-btn">
+            上傳資料表
+            <input id="quickFile" type="file" accept=".csv,.tsv,.txt,.xlsx,.xls" />
+          </label>
+          <button class="small-btn" id="sampleData" type="button">範例</button>
+        </div>
+
+        <div class="mapping" id="quickMapping"></div>
+
+        <label class="field alpha-field" id="alphaField" hidden>
+          Alpha
+          <input id="alphaInput" type="number" min="0" max="1" step="0.01" value="0.3" />
+        </label>
+
+        <button class="run-btn" id="runQuickTool" type="button">輸出結果</button>
+        <div class="mini-message" id="miniMessage"></div>
+        <div class="mini-table-wrap">
+          <table id="quickOutput"></table>
+        </div>
+      </section>
+    </main>
   </body>
 </html>
