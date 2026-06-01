@@ -80,6 +80,14 @@ button:disabled {
   margin-bottom: 20px;
 }
 
+.top-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .eyebrow {
   margin: 0 0 4px;
   color: var(--accent-2);
@@ -394,6 +402,10 @@ tr:nth-child(even) td {
   .panel-head {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .top-actions {
+    justify-content: flex-start;
   }
 
   .status-pill {

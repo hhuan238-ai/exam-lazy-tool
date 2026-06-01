@@ -28,6 +28,10 @@
       "styles.css",
       "app.js",
       "main.cjs",
+      "preload.cjs",
+      "mini.html",
+      "mini.css",
+      "mini.js",
       "node_modules/xlsx/dist/xlsx.full.min.js",
       "node_modules/xlsx/package.json"
     ],

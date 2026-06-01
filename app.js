@@ -38,6 +38,8 @@ const els = {
   messageArea: document.querySelector("#messageArea"),
   loadSample: document.querySelector("#loadSample"),
   clearData: document.querySelector("#clearData"),
+  miniMode: document.querySelector("#miniMode"),
+  minimizeApp: document.querySelector("#minimizeApp"),
   storageStatus: document.querySelector("#storageStatus"),
 };
 
@@ -57,6 +59,13 @@ function attachEvents() {
   els.loadSample.addEventListener("click", setSampleData);
   els.clearData.addEventListener("click", clearData);
   els.autoMap.addEventListener("click", renderMappingFields);
+  els.miniMode?.addEventListener("click", () => window.examLazyTool?.miniMode());
+  els.minimizeApp?.addEventListener("click", () => window.examLazyTool?.minimize());
+
+  if (!window.examLazyTool) {
+    els.miniMode?.setAttribute("hidden", "");
+    els.minimizeApp?.setAttribute("hidden", "");
+  }
 
   els.pasteArea.addEventListener("input", () => {
     rows = parseDelimitedText(els.pasteArea.value);
