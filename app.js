@@ -372,6 +372,24 @@ function evaluateFormula(formula, row, allRows, context, rowIndex, columnMap = {
     sumproduct: (valueKey, weightKey) => context.sumproduct(valueKey, weightKey),
     expected: (valueKey, probabilityKey) => context.sumproduct(valueKey, probabilityKey),
     ev: (valueKey, probabilityKey) => context.sumproduct(valueKey, probabilityKey),
+    evpi: (probabilityKey, ...payoffKeys) => context.evpi(probabilityKey, payoffKeys),
+    movingAverage: (key, window) => context.movingAverage(key, rowIndex, window),
+    sma: (key, window) => context.movingAverage(key, rowIndex, window),
+    sma2: (key) => context.movingAverage(key, rowIndex, 2),
+    sma5: (key) => context.movingAverage(key, rowIndex, 5),
+    sma20: (key) => context.movingAverage(key, rowIndex, 20),
+    wma: (key, weights) => context.weightedMovingAverage(key, rowIndex, weights),
+    wma5: (key) => context.weightedMovingAverage(key, rowIndex, [1, 2, 3, 4, 5]),
+    exponentialSmoothing: (key, alpha, initialForecast) =>
+      context.exponentialSmoothing(key, rowIndex, alpha, initialForecast),
+    naiveForecast: (key) => context.naiveForecast(key, rowIndex),
+    forecastError: (actualKey, forecastKey) => context.forecastError(actualKey, forecastKey, rowIndex),
+    mad: (actualKey, forecastKey) => context.mad(actualKey, forecastKey),
+    mse: (actualKey, forecastKey) => context.mse(actualKey, forecastKey),
+    mape: (actualKey, forecastKey) => context.mape(actualKey, forecastKey),
+    bass: (period, marketSize, innovation, imitation, metric = "cumulative") =>
+      bassModel(period, marketSize, innovation, imitation, metric),
+    breakeven: (fixedCost, price, variableCost) => breakevenUnits(fixedCost, price, variableCost),
     rank: (key, direction = "desc") => context.rank(key, rowIndex, direction),
     SUM: (key) => context.sum(key),
     AVERAGE: (key) => context.avg(key),
@@ -392,6 +410,24 @@ function evaluateFormula(formula, row, allRows, context, rowIndex, columnMap = {
     SUMPRODUCT: (valueKey, weightKey) => context.sumproduct(valueKey, weightKey),
     EXPECTED: (valueKey, probabilityKey) => context.sumproduct(valueKey, probabilityKey),
     EV: (valueKey, probabilityKey) => context.sumproduct(valueKey, probabilityKey),
+    EVPI: (probabilityKey, ...payoffKeys) => context.evpi(probabilityKey, payoffKeys),
+    MOVING_AVERAGE: (key, window) => context.movingAverage(key, rowIndex, window),
+    SMA: (key, window) => context.movingAverage(key, rowIndex, window),
+    SMA2: (key) => context.movingAverage(key, rowIndex, 2),
+    SMA5: (key) => context.movingAverage(key, rowIndex, 5),
+    SMA20: (key) => context.movingAverage(key, rowIndex, 20),
+    WMA: (key, weights) => context.weightedMovingAverage(key, rowIndex, weights),
+    WMA5: (key) => context.weightedMovingAverage(key, rowIndex, [1, 2, 3, 4, 5]),
+    EXPONENTIAL_SMOOTHING: (key, alpha, initialForecast) =>
+      context.exponentialSmoothing(key, rowIndex, alpha, initialForecast),
+    NAIVE_FORECAST: (key) => context.naiveForecast(key, rowIndex),
+    FORECAST_ERROR: (actualKey, forecastKey) => context.forecastError(actualKey, forecastKey, rowIndex),
+    MAD: (actualKey, forecastKey) => context.mad(actualKey, forecastKey),
+    MSE: (actualKey, forecastKey) => context.mse(actualKey, forecastKey),
+    MAPE: (actualKey, forecastKey) => context.mape(actualKey, forecastKey),
+    BASS: (period, marketSize, innovation, imitation, metric = "cumulative") =>
+      bassModel(period, marketSize, innovation, imitation, metric),
+    BREAKEVEN: (fixedCost, price, variableCost) => breakevenUnits(fixedCost, price, variableCost),
     STDEV: {
       P: (key) => context.sd(key),
       S: (key) => context.sds(key),
@@ -414,6 +450,24 @@ function evaluateFormula(formula, row, allRows, context, rowIndex, columnMap = {
 function createDatasetContext(dataset, columnMap = {}) {
   const numberList = (key) =>
     dataset.map((row) => toNumber(getCellValue(row, key, columnMap))).filter((value) => Number.isFinite(value));
+  const valueAt = (key, rowIndex) => toNumber(getCellValue(dataset[rowIndex], key, columnMap));
+  const previousValues = (key, rowIndex, window) => {
+    const end = Math.max(0, rowIndex);
+    const start = Math.max(0, end - Number(window));
+    return dataset
+      .slice(start, end)
+      .map((row) => toNumber(getCellValue(row, key, columnMap)))
+      .filter((value) => Number.isFinite(value));
+  };
+  const errorList = (actualKey, forecastKey) => {
+    return dataset
+      .map((row) => {
+        const actual = toNumber(getCellValue(row, actualKey, columnMap));
+        const forecast = toNumber(getCellValue(row, forecastKey, columnMap));
+        return Number.isFinite(actual) && Number.isFinite(forecast) ? { actual, error: actual - forecast } : null;
+      })
+      .filter(Boolean);
+  };
   const meanOf = (values) => (values.length ? values.reduce((total, value) => total + value, 0) / values.length : 0);
   const varianceOf = (values, sample = false) => {
     if (!values.length || (sample && values.length < 2)) return 0;
@@ -473,12 +527,112 @@ function createDatasetContext(dataset, columnMap = {}) {
         return Number.isFinite(value) && Number.isFinite(weight) ? total + value * weight : total;
       }, 0);
     },
+    evpi: (probabilityKey, payoffKeys) => {
+      const keys = payoffKeys.flat().filter(Boolean);
+      if (!keys.length) return 0;
+
+      const expectedWithPerfectInfo = dataset.reduce((total, row) => {
+        const probability = toNumber(getCellValue(row, probabilityKey, columnMap));
+        const bestPayoff = Math.max(
+          ...keys.map((key) => toNumber(getCellValue(row, key, columnMap))).filter((value) => Number.isFinite(value)),
+        );
+        return Number.isFinite(probability) && Number.isFinite(bestPayoff) ? total + probability * bestPayoff : total;
+      }, 0);
+
+      const bestExpectedValue = Math.max(
+        ...keys.map((key) =>
+          dataset.reduce((total, row) => {
+            const probability = toNumber(getCellValue(row, probabilityKey, columnMap));
+            const payoff = toNumber(getCellValue(row, key, columnMap));
+            return Number.isFinite(probability) && Number.isFinite(payoff) ? total + probability * payoff : total;
+          }, 0),
+        ),
+      );
+
+      return expectedWithPerfectInfo - bestExpectedValue;
+    },
+    movingAverage: (key, rowIndex, window) => {
+      const values = previousValues(key, rowIndex, window);
+      return meanOf(values);
+    },
+    weightedMovingAverage: (key, rowIndex, weights) => {
+      const parsedWeights = parseWeights(weights);
+      const values = previousValues(key, rowIndex, parsedWeights.length);
+      if (!values.length) return 0;
+      const activeWeights = parsedWeights.slice(parsedWeights.length - values.length);
+      const totalWeight = activeWeights.reduce((total, weight) => total + weight, 0);
+      if (!totalWeight) return 0;
+      return values.reduce((total, value, index) => total + value * activeWeights[index], 0) / totalWeight;
+    },
+    exponentialSmoothing: (key, rowIndex, alpha, initialForecast) => {
+      const smoothing = Number(alpha);
+      if (!Number.isFinite(smoothing) || smoothing < 0 || smoothing > 1) return 0;
+      const values = dataset.map((row) => toNumber(getCellValue(row, key, columnMap))).filter((value) => Number.isFinite(value));
+      if (!values.length) return 0;
+      let forecast = Number.isFinite(Number(initialForecast)) ? Number(initialForecast) : values[0];
+      for (let index = 1; index <= rowIndex && index < values.length; index += 1) {
+        forecast = smoothing * values[index - 1] + (1 - smoothing) * forecast;
+      }
+      return forecast;
+    },
+    naiveForecast: (key, rowIndex) => (rowIndex > 0 ? valueAt(key, rowIndex - 1) : 0),
+    forecastError: (actualKey, forecastKey, rowIndex) => {
+      const actual = valueAt(actualKey, rowIndex);
+      const forecast = valueAt(forecastKey, rowIndex);
+      return Number.isFinite(actual) && Number.isFinite(forecast) ? actual - forecast : 0;
+    },
+    mad: (actualKey, forecastKey) => meanOf(errorList(actualKey, forecastKey).map((item) => Math.abs(item.error))),
+    mse: (actualKey, forecastKey) => meanOf(errorList(actualKey, forecastKey).map((item) => item.error ** 2)),
+    mape: (actualKey, forecastKey) => {
+      const percentages = errorList(actualKey, forecastKey)
+        .filter((item) => item.actual !== 0)
+        .map((item) => Math.abs(item.error / item.actual) * 100);
+      return meanOf(percentages);
+    },
     rank: (key, rowIndex, direction) => {
       const current = toNumber(getCellValue(dataset[rowIndex], key, columnMap));
       const values = numberList(key).sort((a, b) => (direction === "asc" ? a - b : b - a));
       return values.findIndex((value) => value === current) + 1;
     },
   };
+}
+
+function parseWeights(weights) {
+  if (Array.isArray(weights)) return weights.map(Number).filter((weight) => Number.isFinite(weight));
+  if (typeof weights === "string") {
+    return weights
+      .split(",")
+      .map((weight) => Number(weight.trim()))
+      .filter((weight) => Number.isFinite(weight));
+  }
+  const count = Number(weights);
+  if (Number.isInteger(count) && count > 0) return Array.from({ length: count }, (_, index) => index + 1);
+  return [];
+}
+
+function bassModel(period, marketSize, innovation, imitation, metric = "cumulative") {
+  const t = Number(period);
+  const m = Number(marketSize);
+  const p = Number(innovation);
+  const q = Number(imitation);
+  if (![t, m, p, q].every((value) => Number.isFinite(value)) || p <= 0 || t < 0) return 0;
+
+  const cumulative = (time) => {
+    if (time <= 0) return 0;
+    const growth = Math.exp(-(p + q) * time);
+    return (m * (1 - growth)) / (1 + (q / p) * growth);
+  };
+
+  if (String(metric).toLowerCase().startsWith("sales")) return cumulative(t) - cumulative(t - 1);
+  return cumulative(t);
+}
+
+function breakevenUnits(fixedCost, price, variableCost) {
+  const fixed = Number(fixedCost);
+  const unitPrice = Number(price);
+  const variable = Number(variableCost);
+  const contribution = unitPrice - variable;
+  return Number.isFinite(fixed) && Number.isFinite(contribution) && contribution !== 0 ? fixed / contribution : 0;
 }
 
 function getCellValue(row, key, columnMap = {}) {

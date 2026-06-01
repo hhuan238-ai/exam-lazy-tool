@@ -1,6 +1,6 @@
 # 考試懶人工具
 
-免安裝的靜態網頁應用，可儲存公式或模型，貼上或上傳資料表後批次產生分析欄位。
+可儲存公式 / 模型，貼上或上傳資料表後批次分析，並可打包成 Windows 桌面應用程式。
 
 ## 桌面應用程式
 
@@ -23,25 +23,25 @@ npm run package:win
 release/Exam Lazy Tool-win32-x64/Exam Lazy Tool.exe
 ```
 
-## 網頁檔案開啟
-
-直接用瀏覽器開啟 `index.html`。
-
 ## 公式範例
+
+公式內的 `[欄位]` 代表目前資料列的值。字串欄位名稱，例如 `"demand"`，通常代表整個欄位，會用在平均、預測誤差、移動平均等模型。
 
 ```js
 [x] * 0.35 + [y] * 0.45 + [z] * 0.2
-[總分] >= 60 ? "及格" : "補考"
-round(([分數] - avg("分數")) / sd("分數"), 2)
-rank("分數", "desc")
-EV("value", "prob")
-SUMPRODUCT("value", "prob")
-AVERAGE("score")
-STDEV.P("score")
 IF([score] >= 60, "及格", "補考")
+EV("value", "prob")
+EVPI("prob", "optionA", "optionB", "optionC")
+SMA("demand", 5)
+WMA5("demand")
+EXPONENTIAL_SMOOTHING("demand", 0.3)
+NAIVE_FORECAST("demand")
+MAD("actual", "forecast")
+BASS([period], [market], [p], [q], "sales")
+BREAKEVEN([fixedCost], [price], [variableCost])
 ```
 
-## 常用公式
+## Excel 風格公式
 
 - `SUM("x")`：加總欄位
 - `AVERAGE("x")` / `MEAN("x")`：平均
@@ -51,24 +51,26 @@ IF([score] >= 60, "及格", "補考")
 - `STDEV.P("x")` / `STDEV.S("x")`：母體 / 樣本標準差
 - `VAR.P("x")` / `VAR.S("x")`：母體 / 樣本變異數
 - `SUMPRODUCT("value", "prob")`：兩欄相乘後加總
-- `EV("value", "prob")` / `EXPECTED("value", "prob")`：期望值，等同 `SUMPRODUCT`
+- `EV("value", "prob")` / `EXPECTED("value", "prob")`：期望值
 - `ROUND(value, digits)`、`ABS(value)`、`SQRT(value)`、`POWER(value, n)`：常用數學函式
 - `IF(condition, trueValue, falseValue)`：條件判斷
 
-期望值範例資料：
+## 決策與預測模型
 
-```csv
-case,value,prob
-A,100,0.2
-B,50,0.5
-C,-20,0.3
-```
-
-公式：
-
-```js
-EV("value", "prob")
-```
+- `EVPI("prob", "optionA", "optionB", ...)`：Expected Value of Perfect Information。資料列代表不同 state，`prob` 是機率欄，其餘欄是各方案 payoff。
+- `MOVING_AVERAGE("demand", n)` / `SMA("demand", n)`：n 期簡單移動平均，用目前列之前的 n 筆資料做 forecast。
+- `SMA2("demand")`、`SMA5("demand")`、`SMA20("demand")`：2-SMA、5-SMA、20-SMA 快捷公式。
+- `WMA("demand", "1,2,3,4,5")`：加權移動平均，權重由舊到新。
+- `WMA5("demand")`：5-WMA 快捷公式，權重為 `1,2,3,4,5`。
+- `EXPONENTIAL_SMOOTHING("demand", 0.3)`：指數平滑，第二個參數是 alpha。
+- `NAIVE_FORECAST("demand")`：Naive forecast，使用上一期實際值。
+- `FORECAST_ERROR("actual", "forecast")`：目前列的 actual - forecast。
+- `MAD("actual", "forecast")`：平均絕對誤差。
+- `MSE("actual", "forecast")`：均方誤差。
+- `MAPE("actual", "forecast")`：平均絕對百分比誤差，百分比單位。
+- `BASS([period], [market], [p], [q])`：Bass model 累積採用量。
+- `BASS([period], [market], [p], [q], "sales")`：Bass model 當期採用量。
+- `BREAKEVEN([fixedCost], [price], [variableCost])`：損益兩平銷售量。
 
 ## 變數對應
 
@@ -78,4 +80,4 @@ EV("value", "prob")
 
 支援貼上 CSV、TSV、分號分隔資料，也支援上傳 `.csv`、`.tsv`、`.txt`、`.xlsx`、`.xls`。
 
-模型會存在瀏覽器的 localStorage，不會上傳到伺服器。
+模型存在瀏覽器 / app 的 localStorage，不會上傳到伺服器。
