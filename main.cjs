@@ -64,7 +64,7 @@ function positionMiniWindow() {
   const win = createMiniWindow();
   const area = screen.getPrimaryDisplay().workArea;
   const [width, height] = win.getSize();
-  win.setPosition(area.x + area.width - width - 12, area.y + Math.round((area.height - height) / 2));
+  win.setPosition(area.x + area.width - width - 12, area.y + area.height - height - 12);
 }
 
 function resizeMiniWindow(width, height) {
