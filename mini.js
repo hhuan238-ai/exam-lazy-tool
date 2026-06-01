@@ -23,6 +23,7 @@ const toolConfig = {
 
 let activeTool = "forecast";
 let rows = [];
+let lastOutput = [];
 
 const els = {
   panel: document.querySelector("#toolPanel"),
@@ -31,6 +32,8 @@ const els = {
   file: document.querySelector("#quickFile"),
   mapping: document.querySelector("#quickMapping"),
   output: document.querySelector("#quickOutput"),
+  copyResult: document.querySelector("#copyResult"),
+  downloadResult: document.querySelector("#downloadResult"),
   message: document.querySelector("#miniMessage"),
   alphaField: document.querySelector("#alphaField"),
   alpha: document.querySelector("#alphaInput"),
@@ -40,6 +43,8 @@ document.querySelector("#restoreApp").addEventListener("click", () => window.exa
 document.querySelector("#collapsePanel").addEventListener("click", collapsePanel);
 document.querySelector("#sampleData").addEventListener("click", loadSample);
 document.querySelector("#runQuickTool").addEventListener("click", runTool);
+els.copyResult.addEventListener("click", copyResult);
+els.downloadResult.addEventListener("click", downloadResult);
 els.data.addEventListener("input", () => {
   rows = parseDelimitedText(els.data.value);
   renderMapping();
@@ -138,7 +143,9 @@ function runTool() {
   if (activeTool === "smoothing") output = runSmoothing(map);
   if (activeTool === "bass") output = runBass(map);
 
+  lastOutput = output;
   renderTable(output);
+  updateResultActions();
   setMessage(`完成 ${output.length} 筆輸出`);
 }
 
@@ -303,6 +310,8 @@ function rowsToCsv(dataset) {
 function renderTable(dataset) {
   if (!dataset.length) {
     els.output.innerHTML = "";
+    lastOutput = [];
+    updateResultActions();
     return;
   }
   const headers = getHeaders(dataset);
@@ -314,6 +323,41 @@ function renderTable(dataset) {
         .join("")}
     </tbody>
   `;
+}
+
+async function copyResult() {
+  if (!lastOutput.length) return;
+  const text = rowsToCsv(lastOutput);
+  try {
+    await navigator.clipboard.writeText(text);
+    setMessage("結果已複製");
+  } catch {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand("copy");
+    textarea.remove();
+    setMessage("結果已複製");
+  }
+}
+
+function downloadResult() {
+  if (!lastOutput.length) return;
+  const blob = new Blob([`\uFEFF${rowsToCsv(lastOutput)}`], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `quick-${activeTool}-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+  setMessage("CSV 已下載");
+}
+
+function updateResultActions() {
+  const enabled = lastOutput.length > 0;
+  els.copyResult.disabled = !enabled;
+  els.downloadResult.disabled = !enabled;
 }
 
 function getHeaders(dataset) {

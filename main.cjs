@@ -92,8 +92,8 @@ function restoreMainWindow() {
 
 ipcMain.handle("window:mini", () => showMiniMode());
 ipcMain.handle("window:restore", () => restoreMainWindow());
-ipcMain.handle("mini:expand", () => resizeMiniWindow(460, 760));
-ipcMain.handle("mini:collapse", () => resizeMiniWindow(82, 330));
+ipcMain.handle("mini:expand", () => resizeMiniWindow(410, 650));
+ipcMain.handle("mini:collapse", () => resizeMiniWindow(64, 260));
 ipcMain.handle("window:minimize", () => {
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.minimize();
 });
