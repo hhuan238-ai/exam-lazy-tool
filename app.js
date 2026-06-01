@@ -4,7 +4,7 @@ const defaultModels = [
   {
     id: createId(),
     name: "加權總分",
-    formula: "round([期中] * 0.35 + [期末] * 0.45 + [作業] * 0.2, 2)",
+    formula: "round([x] * 0.35 + [y] * 0.45 + [z] * 0.2, 2)",
     selected: true,
   },
   {
@@ -30,6 +30,8 @@ const els = {
   fileInput: document.querySelector("#fileInput"),
   inputPreview: document.querySelector("#inputPreview"),
   selectedModels: document.querySelector("#selectedModels"),
+  mappingFields: document.querySelector("#mappingFields"),
+  autoMap: document.querySelector("#autoMap"),
   runAnalysis: document.querySelector("#runAnalysis"),
   outputTable: document.querySelector("#outputTable"),
   downloadCsv: document.querySelector("#downloadCsv"),
@@ -49,19 +51,22 @@ document.addEventListener("DOMContentLoaded", () => {
 function attachEvents() {
   els.modelForm.addEventListener("submit", saveModelFromForm);
   els.clearModelForm.addEventListener("click", resetModelForm);
-  els.pasteArea.addEventListener("input", () => {
-    rows = parseDelimitedText(els.pasteArea.value);
-    outputRows = [];
-    renderTable(els.inputPreview, rows.slice(0, 8));
-    renderTable(els.outputTable, []);
-    updateMessage(rows.length ? `已讀取 ${rows.length} 筆資料` : "");
-    els.downloadCsv.disabled = true;
-  });
   els.fileInput.addEventListener("change", handleFileUpload);
   els.runAnalysis.addEventListener("click", runAnalysis);
   els.downloadCsv.addEventListener("click", downloadCsv);
   els.loadSample.addEventListener("click", setSampleData);
   els.clearData.addEventListener("click", clearData);
+  els.autoMap.addEventListener("click", renderMappingFields);
+
+  els.pasteArea.addEventListener("input", () => {
+    rows = parseDelimitedText(els.pasteArea.value);
+    outputRows = [];
+    renderTable(els.inputPreview, rows.slice(0, 8));
+    renderTable(els.outputTable, []);
+    renderMappingFields();
+    updateMessage(rows.length ? `已讀取 ${rows.length} 筆資料` : "");
+    els.downloadCsv.disabled = true;
+  });
 
   document.querySelectorAll("[data-example]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -97,9 +102,7 @@ function saveModelFromForm(event) {
   if (!name || !formula) return;
 
   if (editingId) {
-    models = models.map((model) =>
-      model.id === editingId ? { ...model, name, formula } : model,
-    );
+    models = models.map((model) => (model.id === editingId ? { ...model, name, formula } : model));
   } else {
     models.push({ id: createId(), name, formula, selected: true });
   }
@@ -108,6 +111,7 @@ function saveModelFromForm(event) {
   resetModelForm();
   renderModels();
   renderSelectedModels();
+  renderMappingFields();
 }
 
 function createId() {
@@ -157,9 +161,7 @@ function handleModelAction(event) {
   const model = models.find((item) => item.id === id);
   if (!model) return;
 
-  if (action === "toggle") {
-    model.selected = event.currentTarget.checked;
-  }
+  if (action === "toggle") model.selected = event.currentTarget.checked;
 
   if (action === "edit") {
     editingId = id;
@@ -176,6 +178,7 @@ function handleModelAction(event) {
   persistModels();
   renderModels();
   renderSelectedModels();
+  renderMappingFields();
 }
 
 function renderSelectedModels() {
@@ -183,6 +186,64 @@ function renderSelectedModels() {
   els.selectedModels.innerHTML = selected.length
     ? selected.map((model) => `<span class="chip">${escapeHtml(model.name)}</span>`).join("")
     : `<span class="chip">未選取模型</span>`;
+}
+
+function renderMappingFields() {
+  const headers = getHeaders(rows);
+  const variables = getFormulaVariables();
+
+  if (!rows.length || !variables.length) {
+    els.mappingFields.innerHTML = `<div class="empty-state">選取模型並載入資料後，這裡會出現公式變數對應表。</div>`;
+    return;
+  }
+
+  els.mappingFields.innerHTML = variables
+    .map((variable) => {
+      const exact = headers.find((header) => normalizeKey(header) === normalizeKey(variable));
+      const options = [
+        `<option value="">不對應</option>`,
+        ...headers.map(
+          (header) =>
+            `<option value="${escapeHtml(header)}" ${exact === header ? "selected" : ""}>${escapeHtml(header)}</option>`,
+        ),
+      ].join("");
+
+      return `
+        <label class="mapping-row">
+          <span class="mapping-var">[${escapeHtml(variable)}]</span>
+          <select data-variable="${escapeHtml(variable)}">${options}</select>
+        </label>
+      `;
+    })
+    .join("");
+}
+
+function getFormulaVariables() {
+  const modelNames = new Set(models.map((model) => model.name));
+  const variables = new Set();
+
+  models
+    .filter((model) => model.selected)
+    .forEach((model) => {
+      extractBracketVariables(model.formula).forEach((variable) => {
+        if (!modelNames.has(variable)) variables.add(variable);
+      });
+    });
+
+  return Array.from(variables);
+}
+
+function extractBracketVariables(formula) {
+  return Array.from(formula.matchAll(/\[([^\]]+)\]/g), (match) => match[1].trim()).filter(Boolean);
+}
+
+function getColumnMap() {
+  return Object.fromEntries(
+    Array.from(els.mappingFields.querySelectorAll("select[data-variable]")).map((select) => [
+      select.dataset.variable,
+      select.value,
+    ]),
+  );
 }
 
 async function handleFileUpload(event) {
@@ -207,6 +268,7 @@ async function handleFileUpload(event) {
     outputRows = [];
     renderTable(els.inputPreview, rows.slice(0, 8));
     renderTable(els.outputTable, []);
+    renderMappingFields();
     els.downloadCsv.disabled = true;
     updateMessage(`已讀取 ${file.name}，共 ${rows.length} 筆資料`, "success");
   } catch (error) {
@@ -218,7 +280,7 @@ async function handleFileUpload(event) {
 
 function setSampleData() {
   els.pasteArea.value = [
-    "姓名,期中,期末,作業,出席",
+    "姓名,g,h,作業,出席",
     "王小明,76,88,91,10",
     "陳怡君,59,63,72,8",
     "林柏翰,92,85,89,9",
@@ -229,6 +291,7 @@ function setSampleData() {
   outputRows = [];
   renderTable(els.inputPreview, rows.slice(0, 8));
   renderTable(els.outputTable, []);
+  renderMappingFields();
   els.downloadCsv.disabled = true;
   updateMessage(`已讀取 ${rows.length} 筆資料`);
 }
@@ -239,6 +302,7 @@ function clearData() {
   outputRows = [];
   renderTable(els.inputPreview, []);
   renderTable(els.outputTable, []);
+  renderMappingFields();
   els.downloadCsv.disabled = true;
   updateMessage("");
 }
@@ -254,14 +318,15 @@ function runAnalysis() {
     return;
   }
 
-  const context = createDatasetContext(rows);
+  const columnMap = getColumnMap();
+  const context = createDatasetContext(rows, columnMap);
   const errors = [];
 
   outputRows = rows.map((sourceRow, rowIndex) => {
     const resultRow = { ...sourceRow };
     selected.forEach((model) => {
       try {
-        resultRow[model.name] = evaluateFormula(model.formula, resultRow, rows, context, rowIndex);
+        resultRow[model.name] = evaluateFormula(model.formula, resultRow, rows, context, rowIndex, columnMap);
       } catch (error) {
         resultRow[model.name] = `錯誤：${error.message}`;
         errors.push(`${model.name} 第 ${rowIndex + 1} 列`);
@@ -278,12 +343,12 @@ function runAnalysis() {
   );
 }
 
-function evaluateFormula(formula, row, allRows, context, rowIndex) {
+function evaluateFormula(formula, row, allRows, context, rowIndex, columnMap = {}) {
   const expression = formula.replace(/\[([^\]]+)\]/g, (_, key) => `value(${JSON.stringify(key.trim())})`);
   const helpers = {
-    value: (key) => coerce(row[key]),
-    text: (key) => String(row[key] ?? ""),
-    num: (key) => toNumber(row[key]),
+    value: (key) => coerce(getCellValue(row, key, columnMap)),
+    text: (key) => String(getCellValue(row, key, columnMap) ?? ""),
+    num: (key) => toNumber(getCellValue(row, key, columnMap)),
     round: (value, digits = 0) => {
       const factor = 10 ** Number(digits);
       return Math.round(Number(value) * factor) / factor;
@@ -305,8 +370,9 @@ function evaluateFormula(formula, row, allRows, context, rowIndex) {
   return fn(...argValues);
 }
 
-function createDatasetContext(dataset) {
-  const numberList = (key) => dataset.map((row) => toNumber(row[key])).filter((value) => Number.isFinite(value));
+function createDatasetContext(dataset, columnMap = {}) {
+  const numberList = (key) =>
+    dataset.map((row) => toNumber(getCellValue(row, key, columnMap))).filter((value) => Number.isFinite(value));
 
   return {
     sum: (key) => numberList(key).reduce((total, value) => total + value, 0),
@@ -330,11 +396,18 @@ function createDatasetContext(dataset) {
       return Math.sqrt(variance);
     },
     rank: (key, rowIndex, direction) => {
-      const current = toNumber(dataset[rowIndex][key]);
+      const current = toNumber(getCellValue(dataset[rowIndex], key, columnMap));
       const values = numberList(key).sort((a, b) => (direction === "asc" ? a - b : b - a));
       return values.findIndex((value) => value === current) + 1;
     },
   };
+}
+
+function getCellValue(row, key, columnMap = {}) {
+  if (Object.prototype.hasOwnProperty.call(row, key)) return row[key];
+  const mappedKey = columnMap[key];
+  if (mappedKey && Object.prototype.hasOwnProperty.call(row, mappedKey)) return row[mappedKey];
+  return undefined;
 }
 
 function parseDelimitedText(text) {
@@ -407,7 +480,7 @@ function renderTable(table, dataset) {
     return;
   }
 
-  const headers = Array.from(new Set(dataset.flatMap((row) => Object.keys(row))));
+  const headers = getHeaders(dataset);
   const head = `<thead><tr>${headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr></thead>`;
   const body = dataset
     .map(
@@ -430,7 +503,7 @@ function renderTable(table, dataset) {
 
 function rowsToCsv(dataset) {
   if (!dataset.length) return "";
-  const headers = Array.from(new Set(dataset.flatMap((row) => Object.keys(row))));
+  const headers = getHeaders(dataset);
   return [
     headers.map(csvEscape).join(","),
     ...dataset.map((row) => headers.map((header) => csvEscape(row[header] ?? "")).join(",")),
@@ -448,6 +521,14 @@ function downloadCsv() {
   URL.revokeObjectURL(url);
 }
 
+function getHeaders(dataset) {
+  return Array.from(new Set(dataset.flatMap((row) => Object.keys(row))));
+}
+
+function normalizeKey(value) {
+  return String(value ?? "").trim().toLowerCase().replaceAll(" ", "");
+}
+
 function csvEscape(value) {
   const text = String(value);
   return /[",\n\r]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
@@ -455,7 +536,7 @@ function csvEscape(value) {
 
 function coerce(value) {
   const number = toNumber(value);
-  return Number.isFinite(number) && String(value).trim() !== "" ? number : value;
+  return Number.isFinite(number) && String(value ?? "").trim() !== "" ? number : value;
 }
 
 function toNumber(value) {

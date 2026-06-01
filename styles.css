@@ -170,7 +170,8 @@ label {
 }
 
 input,
-textarea {
+textarea,
+select {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -186,7 +187,8 @@ textarea {
 }
 
 input:focus,
-textarea:focus {
+textarea:focus,
+select:focus {
   border-color: var(--accent-3);
   box-shadow: 0 0 0 3px rgba(49, 92, 153, 0.14);
 }
@@ -324,6 +326,33 @@ tr:nth-child(even) td {
   padding: 6px 10px;
   font-size: 13px;
   font-weight: 700;
+}
+
+.mapping-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+  padding: 18px;
+}
+
+.mapping-row {
+  min-width: 0;
+}
+
+.mapping-var {
+  color: var(--ink);
+  font-family: Consolas, "Courier New", monospace;
+  font-weight: 750;
+  overflow-wrap: anywhere;
+}
+
+.empty-state {
+  grid-column: 1 / -1;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  padding: 14px;
+  background: #fbfcfb;
 }
 
 .message {

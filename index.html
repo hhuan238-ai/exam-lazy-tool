@@ -35,13 +35,13 @@
             </label>
             <label>
               公式
-              <textarea id="modelFormula" name="modelFormula" rows="7" placeholder="[期中] * 0.35 + [期末] * 0.45 + [作業] * 0.2" required></textarea>
+              <textarea id="modelFormula" name="modelFormula" rows="7" placeholder="[x] + [y]" required></textarea>
             </label>
             <div class="helper-grid">
-              <button type="button" data-example="[期中] * 0.4 + [期末] * 0.6">加權分數</button>
-              <button type="button" data-example="[總分] >= 60 ? '及格' : '補考'">條件判斷</button>
-              <button type="button" data-example="round(([分數] - avg('分數')) / sd('分數'), 2)">Z 分數</button>
-              <button type="button" data-example="rank('分數', 'desc')">排名</button>
+              <button type="button" data-example="[x] + [y]">兩欄相加</button>
+              <button type="button" data-example="round([x] * 0.4 + [y] * 0.6, 2)">加權分數</button>
+              <button type="button" data-example="[score] >= 60 ? '及格' : '補考'">條件判斷</button>
+              <button type="button" data-example="rank('score', 'desc')">排名</button>
             </div>
             <button class="primary-btn" type="submit">儲存模型</button>
           </form>
@@ -65,9 +65,22 @@
                 <button id="clearData" type="button">清空</button>
               </div>
             </div>
-            <textarea id="pasteArea" class="paste-area" rows="8" placeholder="姓名,期中,期末,作業&#10;王小明,76,88,91&#10;陳怡君,59,63,72"></textarea>
+            <textarea id="pasteArea" class="paste-area" rows="8" placeholder="姓名,g,h&#10;王小明,7,8&#10;陳怡君,2,3"></textarea>
             <div class="table-wrap compact">
               <table id="inputPreview"></table>
+            </div>
+          </section>
+
+          <section class="panel mapping-panel" aria-label="欄位對應">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Map</p>
+                <h2>欄位對應</h2>
+              </div>
+              <button id="autoMap" type="button">自動對應</button>
+            </div>
+            <div class="mapping-fields" id="mappingFields">
+              <div class="empty-state">選取模型並載入資料後，這裡會出現公式變數對應表。</div>
             </div>
           </section>
 
