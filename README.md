@@ -2,7 +2,28 @@
 
 免安裝的靜態網頁應用，可儲存公式或模型，貼上或上傳資料表後批次產生分析欄位。
 
-## 開啟
+## 桌面應用程式
+
+開發模式：
+
+```bash
+npm install
+npm start
+```
+
+打包 Windows app：
+
+```bash
+npm run package:win
+```
+
+打包後開啟：
+
+```text
+release/Exam Lazy Tool-win32-x64/Exam Lazy Tool.exe
+```
+
+## 網頁檔案開啟
 
 直接用瀏覽器開啟 `index.html`。
 

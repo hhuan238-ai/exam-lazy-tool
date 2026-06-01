@@ -1,0 +1,47 @@
+{
+  "name": "exam-lazy-tool",
+  "version": "1.0.0",
+  "description": "考試懶人工具桌面應用程式",
+  "author": "hhuan238-ai",
+  "main": "main.cjs",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "build:dir": "electron-builder --dir",
+    "package:win": "electron-packager . \"Exam Lazy Tool\" --platform=win32 --arch=x64 --out=release --overwrite --prune=true --ignore=\"^/dist($|/)\" --ignore=\"^/release($|/)\"",
+    "build": "electron-builder --win nsis portable",
+    "build:portable": "electron-builder --win portable"
+  },
+  "dependencies": {
+    "xlsx": "0.18.5"
+  },
+  "devDependencies": {
+    "@electron/packager": "^20.0.0",
+    "electron": "^36.4.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.examhelper.lazytool",
+    "productName": "Exam Lazy Tool",
+    "files": [
+      "index.html",
+      "styles.css",
+      "app.js",
+      "main.cjs",
+      "node_modules/xlsx/dist/xlsx.full.min.js",
+      "node_modules/xlsx/package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}
