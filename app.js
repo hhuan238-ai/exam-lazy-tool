@@ -353,12 +353,53 @@ function evaluateFormula(formula, row, allRows, context, rowIndex, columnMap = {
       const factor = 10 ** Number(digits);
       return Math.round(Number(value) * factor) / factor;
     },
+    abs: Math.abs,
+    sqrt: Math.sqrt,
+    power: Math.pow,
     sum: (key) => context.sum(key),
     avg: (key) => context.avg(key),
+    mean: (key) => context.avg(key),
+    count: (key) => context.count(key),
+    median: (key) => context.median(key),
+    mode: (key) => context.mode(key),
     min: (key) => context.min(key),
     max: (key) => context.max(key),
     sd: (key) => context.sd(key),
+    stdevp: (key) => context.sd(key),
+    stdevs: (key) => context.sds(key),
+    variancep: (key) => context.variance(key),
+    variances: (key) => context.variances(key),
+    sumproduct: (valueKey, weightKey) => context.sumproduct(valueKey, weightKey),
+    expected: (valueKey, probabilityKey) => context.sumproduct(valueKey, probabilityKey),
+    ev: (valueKey, probabilityKey) => context.sumproduct(valueKey, probabilityKey),
     rank: (key, direction = "desc") => context.rank(key, rowIndex, direction),
+    SUM: (key) => context.sum(key),
+    AVERAGE: (key) => context.avg(key),
+    MEAN: (key) => context.avg(key),
+    COUNT: (key) => context.count(key),
+    MEDIAN: (key) => context.median(key),
+    MODE: (key) => context.mode(key),
+    MIN: (key) => context.min(key),
+    MAX: (key) => context.max(key),
+    ROUND: (value, digits = 0) => {
+      const factor = 10 ** Number(digits);
+      return Math.round(Number(value) * factor) / factor;
+    },
+    ABS: Math.abs,
+    SQRT: Math.sqrt,
+    POWER: Math.pow,
+    IF: (condition, yes, no) => (condition ? yes : no),
+    SUMPRODUCT: (valueKey, weightKey) => context.sumproduct(valueKey, weightKey),
+    EXPECTED: (valueKey, probabilityKey) => context.sumproduct(valueKey, probabilityKey),
+    EV: (valueKey, probabilityKey) => context.sumproduct(valueKey, probabilityKey),
+    STDEV: {
+      P: (key) => context.sd(key),
+      S: (key) => context.sds(key),
+    },
+    VAR: {
+      P: (key) => context.variance(key),
+      S: (key) => context.variances(key),
+    },
     rowNumber: rowIndex + 1,
     rows: allRows,
     Math,
@@ -373,12 +414,39 @@ function evaluateFormula(formula, row, allRows, context, rowIndex, columnMap = {
 function createDatasetContext(dataset, columnMap = {}) {
   const numberList = (key) =>
     dataset.map((row) => toNumber(getCellValue(row, key, columnMap))).filter((value) => Number.isFinite(value));
+  const meanOf = (values) => (values.length ? values.reduce((total, value) => total + value, 0) / values.length : 0);
+  const varianceOf = (values, sample = false) => {
+    if (!values.length || (sample && values.length < 2)) return 0;
+    const mean = meanOf(values);
+    const divisor = sample ? values.length - 1 : values.length;
+    return values.reduce((total, value) => total + (value - mean) ** 2, 0) / divisor;
+  };
 
   return {
     sum: (key) => numberList(key).reduce((total, value) => total + value, 0),
+    count: (key) => numberList(key).length,
     avg: (key) => {
       const values = numberList(key);
-      return values.length ? values.reduce((total, value) => total + value, 0) / values.length : 0;
+      return meanOf(values);
+    },
+    median: (key) => {
+      const values = numberList(key).sort((a, b) => a - b);
+      if (!values.length) return 0;
+      const middle = Math.floor(values.length / 2);
+      return values.length % 2 ? values[middle] : (values[middle - 1] + values[middle]) / 2;
+    },
+    mode: (key) => {
+      const counts = new Map();
+      numberList(key).forEach((value) => counts.set(value, (counts.get(value) || 0) + 1));
+      let bestValue = "";
+      let bestCount = 0;
+      counts.forEach((count, value) => {
+        if (count > bestCount) {
+          bestValue = value;
+          bestCount = count;
+        }
+      });
+      return bestValue;
     },
     min: (key) => {
       const values = numberList(key);
@@ -390,10 +458,20 @@ function createDatasetContext(dataset, columnMap = {}) {
     },
     sd: (key) => {
       const values = numberList(key);
-      if (!values.length) return 0;
-      const mean = values.reduce((total, value) => total + value, 0) / values.length;
-      const variance = values.reduce((total, value) => total + (value - mean) ** 2, 0) / values.length;
-      return Math.sqrt(variance);
+      return Math.sqrt(varianceOf(values));
+    },
+    sds: (key) => {
+      const values = numberList(key);
+      return Math.sqrt(varianceOf(values, true));
+    },
+    variance: (key) => varianceOf(numberList(key)),
+    variances: (key) => varianceOf(numberList(key), true),
+    sumproduct: (valueKey, weightKey) => {
+      return dataset.reduce((total, row) => {
+        const value = toNumber(getCellValue(row, valueKey, columnMap));
+        const weight = toNumber(getCellValue(row, weightKey, columnMap));
+        return Number.isFinite(value) && Number.isFinite(weight) ? total + value * weight : total;
+      }, 0);
     },
     rank: (key, rowIndex, direction) => {
       const current = toNumber(getCellValue(dataset[rowIndex], key, columnMap));

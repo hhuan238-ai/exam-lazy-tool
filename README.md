@@ -13,6 +13,40 @@
 [總分] >= 60 ? "及格" : "補考"
 round(([分數] - avg("分數")) / sd("分數"), 2)
 rank("分數", "desc")
+EV("value", "prob")
+SUMPRODUCT("value", "prob")
+AVERAGE("score")
+STDEV.P("score")
+IF([score] >= 60, "及格", "補考")
+```
+
+## 常用公式
+
+- `SUM("x")`：加總欄位
+- `AVERAGE("x")` / `MEAN("x")`：平均
+- `COUNT("x")`：數值筆數
+- `MIN("x")` / `MAX("x")`：最小值 / 最大值
+- `MEDIAN("x")` / `MODE("x")`：中位數 / 眾數
+- `STDEV.P("x")` / `STDEV.S("x")`：母體 / 樣本標準差
+- `VAR.P("x")` / `VAR.S("x")`：母體 / 樣本變異數
+- `SUMPRODUCT("value", "prob")`：兩欄相乘後加總
+- `EV("value", "prob")` / `EXPECTED("value", "prob")`：期望值，等同 `SUMPRODUCT`
+- `ROUND(value, digits)`、`ABS(value)`、`SQRT(value)`、`POWER(value, n)`：常用數學函式
+- `IF(condition, trueValue, falseValue)`：條件判斷
+
+期望值範例資料：
+
+```csv
+case,value,prob
+A,100,0.2
+B,50,0.5
+C,-20,0.3
+```
+
+公式：
+
+```js
+EV("value", "prob")
 ```
 
 ## 變數對應
