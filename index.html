@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>考試懶人工具</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script defer src="app.js"></script>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Exam Helper</p>
+          <h1>考試懶人工具</h1>
+        </div>
+        <div class="status-pill" id="storageStatus">本機儲存已啟用</div>
+      </header>
+
+      <section class="workspace">
+        <aside class="panel model-panel" aria-label="公式模型">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Models</p>
+              <h2>公式 / 模型</h2>
+            </div>
+            <button class="icon-btn" id="clearModelForm" title="清空表單" aria-label="清空表單">↺</button>
+          </div>
+
+          <form id="modelForm" class="model-form">
+            <label>
+              名稱
+              <input id="modelName" name="modelName" type="text" placeholder="總分、及格判斷、標準化分數" required />
+            </label>
+            <label>
+              公式
+              <textarea id="modelFormula" name="modelFormula" rows="7" placeholder="[期中] * 0.35 + [期末] * 0.45 + [作業] * 0.2" required></textarea>
+            </label>
+            <div class="helper-grid">
+              <button type="button" data-example="[期中] * 0.4 + [期末] * 0.6">加權分數</button>
+              <button type="button" data-example="[總分] >= 60 ? '及格' : '補考'">條件判斷</button>
+              <button type="button" data-example="round(([分數] - avg('分數')) / sd('分數'), 2)">Z 分數</button>
+              <button type="button" data-example="rank('分數', 'desc')">排名</button>
+            </div>
+            <button class="primary-btn" type="submit">儲存模型</button>
+          </form>
+
+          <div class="saved-models" id="savedModels"></div>
+        </aside>
+
+        <section class="main-stage">
+          <section class="panel data-panel" aria-label="資料輸入">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Data</p>
+                <h2>資料表</h2>
+              </div>
+              <div class="actions">
+                <label class="file-btn">
+                  上傳
+                  <input id="fileInput" type="file" accept=".csv,.tsv,.txt,.xlsx,.xls" />
+                </label>
+                <button id="loadSample" type="button">範例</button>
+                <button id="clearData" type="button">清空</button>
+              </div>
+            </div>
+            <textarea id="pasteArea" class="paste-area" rows="8" placeholder="姓名,期中,期末,作業&#10;王小明,76,88,91&#10;陳怡君,59,63,72"></textarea>
+            <div class="table-wrap compact">
+              <table id="inputPreview"></table>
+            </div>
+          </section>
+
+          <section class="panel run-panel" aria-label="執行分析">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Run</p>
+                <h2>分析輸出</h2>
+              </div>
+              <div class="actions">
+                <button id="runAnalysis" class="primary-btn" type="button">開始分析</button>
+                <button id="downloadCsv" type="button" disabled>下載 CSV</button>
+              </div>
+            </div>
+            <div class="selected-bar" id="selectedModels"></div>
+            <div class="message" id="messageArea"></div>
+            <div class="table-wrap">
+              <table id="outputTable"></table>
+            </div>
+          </section>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>
