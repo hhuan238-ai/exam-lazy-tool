@@ -51,6 +51,11 @@ MSE("actual", "forecast")
 MAPE("actual", "forecast")
 BASS([period], [market], [p], [q], "sales")
 BREAKEVEN([fixedCost], [price], [variableCost])
+EOQ([D], [S], [H])
+REORDER_POINT([d], [L], [z], [sigma])
+SAFETY_STOCK([z], [sigma], [L])
+NEWSVENDOR_CR([Cu], [Co])
+NEWSVENDOR_Q([mu], [sigma], [Cu], [Co])
 ```
 
 ## Excel 風格公式
@@ -83,6 +88,12 @@ BREAKEVEN([fixedCost], [price], [variableCost])
 - `BASS([period], [market], [p], [q])`：Bass model 累積採用量。
 - `BASS([period], [market], [p], [q], "sales")`：Bass model 當期採用量。
 - `BREAKEVEN([fixedCost], [price], [variableCost])`：損益兩平銷售量。
+- `EOQ([D], [S], [H])`：經濟訂購量，`sqrt(2DS / H)`。
+- `SAFETY_STOCK([z], [sigma], [L])`：安全庫存，`z * sigma * sqrt(L)`。
+- `REORDER_POINT([d], [L], [z], [sigma])` / `ROP(...)`：再訂購點，`dL + z * sigma * sqrt(L)`。
+- `NEWSVENDOR_CR([Cu], [Co])`：Newsvendor critical ratio，`Cu / (Cu + Co)`。
+- `NEWSVENDOR_Q([mu], [sigma], [Cu], [Co])`：常態需求下的訂購量，`mu + z * sigma`，其中 `z = NORM_INV(Cu / (Cu + Co))`。
+- `NORM_INV(probability)`：標準常態反累積機率，用於查 z 值。
 
 ## 變數對應
 

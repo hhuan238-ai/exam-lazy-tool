@@ -532,6 +532,12 @@ function evaluateFormula(formula, row, allRows, context, rowIndex, columnMap = {
     bass: (period, marketSize, innovation, imitation, metric = "cumulative") =>
       bassModel(period, marketSize, innovation, imitation, metric),
     breakeven: (fixedCost, price, variableCost) => breakevenUnits(fixedCost, price, variableCost),
+    eoq: (demand, orderCost, holdingCost) => eoq(demand, orderCost, holdingCost),
+    safetyStock: (z, sigma, leadTime) => safetyStock(z, sigma, leadTime),
+    reorderPoint: (demand, leadTime, z = 0, sigma = 0) => reorderPoint(demand, leadTime, z, sigma),
+    newsvendorCR: (underageCost, overageCost) => newsvendorCriticalRatio(underageCost, overageCost),
+    newsvendorQ: (mean, sigma, underageCost, overageCost) => newsvendorQuantity(mean, sigma, underageCost, overageCost),
+    normInv: (probability) => normalInverse(probability),
     rank: (key, direction = "desc") => context.rank(key, rowIndex, direction),
     SUM: (key) => context.sum(key),
     AVERAGE: (key) => context.avg(key),
@@ -570,6 +576,13 @@ function evaluateFormula(formula, row, allRows, context, rowIndex, columnMap = {
     BASS: (period, marketSize, innovation, imitation, metric = "cumulative") =>
       bassModel(period, marketSize, innovation, imitation, metric),
     BREAKEVEN: (fixedCost, price, variableCost) => breakevenUnits(fixedCost, price, variableCost),
+    EOQ: (demand, orderCost, holdingCost) => eoq(demand, orderCost, holdingCost),
+    SAFETY_STOCK: (z, sigma, leadTime) => safetyStock(z, sigma, leadTime),
+    REORDER_POINT: (demand, leadTime, z = 0, sigma = 0) => reorderPoint(demand, leadTime, z, sigma),
+    ROP: (demand, leadTime, z = 0, sigma = 0) => reorderPoint(demand, leadTime, z, sigma),
+    NEWSVENDOR_CR: (underageCost, overageCost) => newsvendorCriticalRatio(underageCost, overageCost),
+    NEWSVENDOR_Q: (mean, sigma, underageCost, overageCost) => newsvendorQuantity(mean, sigma, underageCost, overageCost),
+    NORM_INV: (probability) => normalInverse(probability),
     STDEV: {
       P: (key) => context.sd(key),
       S: (key) => context.sds(key),
@@ -775,6 +788,92 @@ function breakevenUnits(fixedCost, price, variableCost) {
   const variable = Number(variableCost);
   const contribution = unitPrice - variable;
   return Number.isFinite(fixed) && Number.isFinite(contribution) && contribution !== 0 ? fixed / contribution : 0;
+}
+
+function eoq(demand, orderCost, holdingCost) {
+  const d = Number(demand);
+  const s = Number(orderCost);
+  const h = Number(holdingCost);
+  return [d, s, h].every((value) => Number.isFinite(value)) && h > 0 ? Math.sqrt((2 * d * s) / h) : 0;
+}
+
+function safetyStock(z, sigma, leadTime) {
+  const serviceZ = Number(z);
+  const stdDev = Number(sigma);
+  const lead = Number(leadTime);
+  return [serviceZ, stdDev, lead].every((value) => Number.isFinite(value)) && lead >= 0
+    ? serviceZ * stdDev * Math.sqrt(lead)
+    : 0;
+}
+
+function reorderPoint(demand, leadTime, z = 0, sigma = 0) {
+  const d = Number(demand);
+  const lead = Number(leadTime);
+  return [d, lead].every((value) => Number.isFinite(value)) ? d * lead + safetyStock(z, sigma, lead) : 0;
+}
+
+function newsvendorCriticalRatio(underageCost, overageCost) {
+  const cu = Number(underageCost);
+  const co = Number(overageCost);
+  const denominator = cu + co;
+  return [cu, co, denominator].every((value) => Number.isFinite(value)) && denominator !== 0 ? cu / denominator : 0;
+}
+
+function newsvendorQuantity(mean, sigma, underageCost, overageCost) {
+  const mu = Number(mean);
+  const stdDev = Number(sigma);
+  const criticalRatio = newsvendorCriticalRatio(underageCost, overageCost);
+  return [mu, stdDev, criticalRatio].every((value) => Number.isFinite(value))
+    ? mu + normalInverse(criticalRatio) * stdDev
+    : 0;
+}
+
+function normalInverse(probability) {
+  const p = Number(probability);
+  if (!Number.isFinite(p) || p <= 0 || p >= 1) return 0;
+
+  const a = [
+    -39.69683028665376,
+    220.9460984245205,
+    -275.9285104469687,
+    138.357751867269,
+    -30.66479806614716,
+    2.506628277459239,
+  ];
+  const b = [
+    -54.47609879822406,
+    161.5858368580409,
+    -155.6989798598866,
+    66.80131188771972,
+    -13.28068155288572,
+  ];
+  const c = [
+    -0.007784894002430293,
+    -0.3223964580411365,
+    -2.400758277161838,
+    -2.549732539343734,
+    4.374664141464968,
+    2.938163982698783,
+  ];
+  const d = [0.007784695709041462, 0.3224671290700398, 2.445134137142996, 3.754408661907416];
+  const low = 0.02425;
+  const high = 1 - low;
+
+  if (p < low) {
+    const q = Math.sqrt(-2 * Math.log(p));
+    return (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
+      ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
+  }
+  if (p > high) {
+    const q = Math.sqrt(-2 * Math.log(1 - p));
+    return -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
+      ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
+  }
+
+  const q = p - 0.5;
+  const r = q * q;
+  return (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q /
+    (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
 }
 
 function getCellValue(row, key, columnMap = {}) {
