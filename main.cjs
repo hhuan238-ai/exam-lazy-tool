@@ -39,7 +39,9 @@ function createMiniWindow() {
     width: 82,
     height: 330,
     frame: false,
-    resizable: false,
+    resizable: true,
+    minWidth: 64,
+    minHeight: 240,
     transparent: true,
     alwaysOnTop: true,
     skipTaskbar: true,
@@ -69,9 +71,7 @@ function positionMiniWindow() {
 
 function resizeMiniWindow(width, height) {
   const win = createMiniWindow();
-  win.setResizable(true);
   win.setSize(width, height);
-  win.setResizable(false);
   positionMiniWindow();
 }
 

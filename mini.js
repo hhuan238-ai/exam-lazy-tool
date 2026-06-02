@@ -27,9 +27,44 @@ const toolConfig = {
     ],
     sample: "period,actual,forecast\n1,100,90\n2,120,100\n3,80,85\n4,110,100\n5,130,125",
   },
+  inventory: {
+    title: "公式計算機",
+    fields: [],
+    sample: "",
+  },
+};
+
+const inventoryConfig = {
+  eoq: {
+    title: "EOQ",
+    fields: [
+      { key: "D", label: "D 年需求量", value: "" },
+      { key: "S", label: "S 每次下單成本", value: "" },
+      { key: "H", label: "H 每單位年持有成本", value: "" },
+    ],
+  },
+  rop: {
+    title: "Reorder Point",
+    fields: [
+      { key: "d", label: "d 每期需求", value: "300" },
+      { key: "L", label: "L Lead time", value: "4" },
+      { key: "z", label: "z Service level", value: "2.05" },
+      { key: "sigma", label: "σ 每期需求標準差", value: "90" },
+    ],
+  },
+  newsvendor: {
+    title: "Newsvendor",
+    fields: [
+      { key: "mu", label: "μ 平均需求", value: "" },
+      { key: "sigma", label: "σ 需求標準差", value: "" },
+      { key: "Cu", label: "Cu 少訂損失", value: "" },
+      { key: "Co", label: "Co 多訂損失", value: "" },
+    ],
+  },
 };
 
 let activeTool = "forecast";
+let activeInventory = "eoq";
 let rows = [];
 let lastOutput = [];
 
@@ -45,6 +80,9 @@ const els = {
   message: document.querySelector("#miniMessage"),
   alphaField: document.querySelector("#alphaField"),
   alpha: document.querySelector("#alphaInput"),
+  dataBlocks: document.querySelectorAll(".data-block"),
+  inventoryPanel: document.querySelector("#inventoryPanel"),
+  inventoryFields: document.querySelector("#inventoryFields"),
 };
 
 document.querySelector("#restoreApp").addEventListener("click", () => window.examLazyTool?.restore());
@@ -65,14 +103,19 @@ document.querySelectorAll("[data-tool]").forEach((button) => {
   button.addEventListener("click", () => selectTool(button.dataset.tool));
 });
 
+document.querySelectorAll("[data-inventory]").forEach((button) => {
+  button.addEventListener("click", () => selectInventory(button.dataset.inventory));
+});
+
 function selectTool(tool) {
   activeTool = tool;
   window.examLazyTool?.expandMini();
   els.panel.hidden = false;
   els.title.textContent = toolConfig[tool].title;
   updateAlphaField();
+  updateInventoryMode();
   document.querySelectorAll(".mode-tab").forEach((tab) => tab.classList.toggle("active", tab.dataset.tool === tool));
-  if (!els.data.value.trim()) loadSample();
+  if (tool !== "inventory" && !els.data.value.trim()) loadSample();
   renderMapping();
   renderTable([]);
 }
@@ -82,6 +125,40 @@ function updateAlphaField() {
   els.alphaField.hidden = !shouldShow;
   els.alphaField.style.display = shouldShow ? "grid" : "none";
   if (!shouldShow) els.alpha.value = "0.3";
+}
+
+function updateInventoryMode() {
+  const shouldShow = activeTool === "inventory";
+  els.inventoryPanel.hidden = !shouldShow;
+  els.inventoryPanel.style.display = shouldShow ? "block" : "none";
+  els.dataBlocks.forEach((block) => {
+    block.hidden = shouldShow;
+    block.style.display = shouldShow ? "none" : "";
+  });
+  if (shouldShow) renderInventoryFields();
+}
+
+function selectInventory(type) {
+  activeInventory = type;
+  document.querySelectorAll("[data-inventory]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.inventory === type);
+  });
+  renderInventoryFields();
+  renderTable([]);
+}
+
+function renderInventoryFields() {
+  const config = inventoryConfig[activeInventory];
+  els.inventoryFields.innerHTML = config.fields
+    .map(
+      (field) => `
+        <label>
+          ${escapeHtml(field.label)}
+          <input type="number" step="any" data-inventory-field="${field.key}" value="${escapeHtml(field.value)}" />
+        </label>
+      `,
+    )
+    .join("");
 }
 
 function collapsePanel() {
@@ -147,6 +224,15 @@ function renderMapping() {
 }
 
 function runTool() {
+  if (activeTool === "inventory") {
+    const output = [runInventoryCalculator()];
+    lastOutput = output;
+    renderTable(output);
+    updateResultActions();
+    setMessage("完成公式計算");
+    return;
+  }
+
   if (!rows.length) {
     setMessage("請先貼上或上傳資料表", "error");
     return;
@@ -163,6 +249,51 @@ function runTool() {
   renderTable(output);
   updateResultActions();
   setMessage(`完成 ${output.length} 筆輸出`);
+}
+
+function runInventoryCalculator() {
+  const values = Object.fromEntries(
+    Array.from(els.inventoryFields.querySelectorAll("[data-inventory-field]")).map((input) => [
+      input.dataset.inventoryField,
+      Number(input.value),
+    ]),
+  );
+
+  if (activeInventory === "eoq") {
+    return {
+      Model: "EOQ",
+      D: values.D,
+      S: values.S,
+      H: values.H,
+      EOQ: formatNumber(eoq(values.D, values.S, values.H)),
+    };
+  }
+
+  if (activeInventory === "rop") {
+    const ss = safetyStock(values.z, values.sigma, values.L);
+    return {
+      Model: "Reorder Point",
+      d: values.d,
+      L: values.L,
+      z: values.z,
+      sigma: values.sigma,
+      "Safety Stock": formatNumber(ss),
+      "Reorder Point": formatNumber(reorderPoint(values.d, values.L, values.z, values.sigma)),
+    };
+  }
+
+  const cr = newsvendorCriticalRatio(values.Cu, values.Co);
+  const z = normalInverse(cr);
+  return {
+    Model: "Newsvendor",
+    mu: values.mu,
+    sigma: values.sigma,
+    Cu: values.Cu,
+    Co: values.Co,
+    "Critical Ratio": formatNumber(cr),
+    z: formatNumber(z),
+    Q: formatNumber(values.mu + z * values.sigma),
+  };
 }
 
 function runForecast(map) {
@@ -278,6 +409,61 @@ function bass(period, market, p, q, metricName) {
     return (market * (1 - growth)) / (1 + (q / p) * growth);
   };
   return metricName === "sales" ? cumulative(period) - cumulative(period - 1) : cumulative(period);
+}
+
+function eoq(demand, orderCost, holdingCost) {
+  const d = Number(demand);
+  const s = Number(orderCost);
+  const h = Number(holdingCost);
+  return [d, s, h].every((value) => Number.isFinite(value)) && h > 0 ? Math.sqrt((2 * d * s) / h) : "";
+}
+
+function safetyStock(z, sigma, leadTime) {
+  const serviceZ = Number(z);
+  const stdDev = Number(sigma);
+  const lead = Number(leadTime);
+  return [serviceZ, stdDev, lead].every((value) => Number.isFinite(value)) && lead >= 0
+    ? serviceZ * stdDev * Math.sqrt(lead)
+    : "";
+}
+
+function reorderPoint(demand, leadTime, z = 0, sigma = 0) {
+  const d = Number(demand);
+  const lead = Number(leadTime);
+  const ss = safetyStock(z, sigma, lead);
+  return [d, lead].every((value) => Number.isFinite(value)) && Number.isFinite(ss) ? d * lead + ss : "";
+}
+
+function newsvendorCriticalRatio(underageCost, overageCost) {
+  const cu = Number(underageCost);
+  const co = Number(overageCost);
+  const denominator = cu + co;
+  return [cu, co, denominator].every((value) => Number.isFinite(value)) && denominator !== 0 ? cu / denominator : "";
+}
+
+function normalInverse(probability) {
+  const p = Number(probability);
+  if (!Number.isFinite(p) || p <= 0 || p >= 1) return "";
+  const a = [-39.69683028665376, 220.9460984245205, -275.9285104469687, 138.357751867269, -30.66479806614716, 2.506628277459239];
+  const b = [-54.47609879822406, 161.5858368580409, -155.6989798598866, 66.80131188771972, -13.28068155288572];
+  const c = [-0.007784894002430293, -0.3223964580411365, -2.400758277161838, -2.549732539343734, 4.374664141464968, 2.938163982698783];
+  const d = [0.007784695709041462, 0.3224671290700398, 2.445134137142996, 3.754408661907416];
+  const low = 0.02425;
+  const high = 1 - low;
+  if (p < low) {
+    const q = Math.sqrt(-2 * Math.log(p));
+    return (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
+      ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
+  }
+  if (p > high) {
+    const q = Math.sqrt(-2 * Math.log(1 - p));
+    return -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
+      ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
+  }
+  const q = p - 0.5;
+  const r = q * q;
+  return (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q /
+    (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
 }
 
 function parseDelimitedText(text) {

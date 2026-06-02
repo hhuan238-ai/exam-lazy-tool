@@ -31,6 +31,7 @@ release/Exam Lazy Tool-win32-x64/Exam Lazy Tool.exe
 - 指數平滑：貼上或上傳資料後指定需求欄位，可使用預設 alpha `0.3` 或輸入新 alpha，輸出 Exponential Smoothing Forecast。
 - Bass：貼上或上傳資料後指定 `period`、`market`、`p`、`q` 欄位，輸出 Bass cumulative adoption 與 Bass sales。
 - 誤差 index：貼上或上傳資料後指定 actual 與 forecast 欄位，輸出 Forecast Error、MAD、MSE、MAPE。
+- 公式計算機：直接輸入數值計算 EOQ、Reorder Point / Safety Stock、Newsvendor。
 
 ## 公式範例
 

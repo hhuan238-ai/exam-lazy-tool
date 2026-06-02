@@ -80,6 +80,10 @@ select {
   background: #6d4a9c;
 }
 
+.rail-button:nth-child(5) {
+  background: #7a5a18;
+}
+
 .rail-button.ghost {
   margin-top: auto;
   color: #687476;
@@ -143,6 +147,47 @@ h1 {
   background: #edf4f1;
   color: #146c5f;
   font-weight: 800;
+}
+
+.inventory-panel {
+  padding: 8px 10px 0;
+}
+
+.inventory-tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.inventory-tab {
+  flex: 1;
+  min-height: 32px;
+  border: 1px solid #d8ded8;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.inventory-tab.active {
+  border-color: #146c5f;
+  background: #edf4f1;
+  color: #146c5f;
+  font-weight: 800;
+}
+
+.inventory-fields {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+.inventory-fields label {
+  display: grid;
+  gap: 5px;
+  color: #687476;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .field {
