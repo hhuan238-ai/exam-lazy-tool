@@ -162,7 +162,8 @@ function runCalculator() {
 
   let result = "";
   if (activeCalculator === "eoq") {
-    result = `EOQ = ${formatCell(eoq(values.D, values.S, values.H))}`;
+    const quantity = eoq(values.D, values.S, values.H);
+    result = `EOQ = ${formatCell(quantity)}；年度訂購成本 = ${formatCell(annualOrderingCost(values.D, quantity, values.S))}；年度持有成本 = ${formatCell(annualHoldingCost(quantity, values.H))}`;
   }
   if (activeCalculator === "rop") {
     const ss = safetyStock(values.z, values.sigma, values.L);
@@ -885,6 +886,19 @@ function eoq(demand, orderCost, holdingCost) {
   const s = Number(orderCost);
   const h = Number(holdingCost);
   return [d, s, h].every((value) => Number.isFinite(value)) && h > 0 ? Math.sqrt((2 * d * s) / h) : 0;
+}
+
+function annualOrderingCost(demand, quantity, orderCost) {
+  const d = Number(demand);
+  const q = Number(quantity);
+  const s = Number(orderCost);
+  return [d, q, s].every((value) => Number.isFinite(value)) && q !== 0 ? (d / q) * s : 0;
+}
+
+function annualHoldingCost(quantity, holdingCost) {
+  const q = Number(quantity);
+  const h = Number(holdingCost);
+  return [q, h].every((value) => Number.isFinite(value)) ? (q / 2) * h : 0;
 }
 
 function safetyStock(z, sigma, leadTime) {

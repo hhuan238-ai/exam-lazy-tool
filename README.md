@@ -92,6 +92,7 @@ NEWSVENDOR_Q([mu], [sigma], [Cu], [Co])
 - `BASS([period], [market], [p], [q], "sales")`：Bass model 當期採用量。
 - `BREAKEVEN([fixedCost], [price], [variableCost])`：損益兩平銷售量。
 - `EOQ([D], [S], [H])`：經濟訂購量，`sqrt(2DS / H)`。
+  EOQ 計算機會同時輸出年度訂購成本 `D / Q * S` 與年度持有成本 `Q / 2 * H`。
 - `SAFETY_STOCK([z], [sigma], [L])`：安全庫存，`z * sigma * sqrt(L)`。
 - `REORDER_POINT([d], [L], [z], [sigma])` / `ROP(...)`：再訂購點，`dL + z * sigma * sqrt(L)`。
 - `NEWSVENDOR_CR([Cu], [Co])`：Newsvendor critical ratio，`Cu / (Cu + Co)`。

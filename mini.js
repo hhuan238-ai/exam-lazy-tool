@@ -260,12 +260,15 @@ function runInventoryCalculator() {
   );
 
   if (activeInventory === "eoq") {
+    const quantity = eoq(values.D, values.S, values.H);
     return {
       Model: "EOQ",
       D: values.D,
       S: values.S,
       H: values.H,
-      EOQ: formatNumber(eoq(values.D, values.S, values.H)),
+      EOQ: formatNumber(quantity),
+      "Annual Ordering Cost": formatNumber(annualOrderingCost(values.D, quantity, values.S)),
+      "Annual Holding Cost": formatNumber(annualHoldingCost(quantity, values.H)),
     };
   }
 
@@ -416,6 +419,19 @@ function eoq(demand, orderCost, holdingCost) {
   const s = Number(orderCost);
   const h = Number(holdingCost);
   return [d, s, h].every((value) => Number.isFinite(value)) && h > 0 ? Math.sqrt((2 * d * s) / h) : "";
+}
+
+function annualOrderingCost(demand, quantity, orderCost) {
+  const d = Number(demand);
+  const q = Number(quantity);
+  const s = Number(orderCost);
+  return [d, q, s].every((value) => Number.isFinite(value)) && q !== 0 ? (d / q) * s : "";
+}
+
+function annualHoldingCost(quantity, holdingCost) {
+  const q = Number(quantity);
+  const h = Number(holdingCost);
+  return [q, h].every((value) => Number.isFinite(value)) ? (q / 2) * h : "";
 }
 
 function safetyStock(z, sigma, leadTime) {
