@@ -62,11 +62,18 @@ function selectTool(tool) {
   window.examLazyTool?.expandMini();
   els.panel.hidden = false;
   els.title.textContent = toolConfig[tool].title;
-  els.alphaField.hidden = tool !== "smoothing";
+  updateAlphaField();
   document.querySelectorAll(".mode-tab").forEach((tab) => tab.classList.toggle("active", tab.dataset.tool === tool));
   if (!els.data.value.trim()) loadSample();
   renderMapping();
   renderTable([]);
+}
+
+function updateAlphaField() {
+  const shouldShow = activeTool === "smoothing";
+  els.alphaField.hidden = !shouldShow;
+  els.alphaField.style.display = shouldShow ? "grid" : "none";
+  if (!shouldShow) els.alpha.value = "0.3";
 }
 
 function collapsePanel() {
