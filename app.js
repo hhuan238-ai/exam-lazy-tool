@@ -83,6 +83,34 @@ function attachEvents() {
       els.modelFormula.focus();
     });
   });
+
+  document.querySelectorAll("[data-models]").forEach((button) => {
+    button.addEventListener("click", () => addTemplateModels(button.dataset.models));
+  });
+}
+
+function addTemplateModels(template) {
+  template
+    .split(";")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .forEach((item) => {
+      const [name, formula] = item.split("|");
+      if (!name || !formula) return;
+      const existing = models.find((model) => normalizeKey(model.name) === normalizeKey(name));
+      if (existing) {
+        existing.formula = formula;
+        existing.selected = true;
+      } else {
+        models.push({ id: createId(), name, formula, selected: true });
+      }
+    });
+
+  persistModels();
+  renderModels();
+  renderSelectedModels();
+  renderMappingFields();
+  updateMessage("已加入誤差 index 模型", "success");
 }
 
 function loadModels() {

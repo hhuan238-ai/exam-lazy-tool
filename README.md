@@ -25,11 +25,12 @@ release/Exam Lazy Tool-win32-x64/Exam Lazy Tool.exe
 
 桌面版支援側邊模式。按「側邊模式」或視窗最小化時，主視窗會收起，螢幕右側會留下小浮窗；點擊小浮窗即可叫回主視窗。
 
-側邊模式內建三個快速工具：
+側邊模式內建四個快速工具：
 
-- 一般預測：貼上或上傳資料後指定需求欄位，輸出 Naive Forecast、Forecast Error、MAD、MSE、MAPE、2-SMA、5-SMA、20-SMA、5-WMA。
+- 一般預測：貼上或上傳資料後指定需求欄位，輸出 Naive Forecast、2-SMA、5-SMA、20-SMA、5-WMA。
 - 指數平滑：貼上或上傳資料後指定需求欄位，可使用預設 alpha `0.3` 或輸入新 alpha，輸出 Exponential Smoothing Forecast。
 - Bass：貼上或上傳資料後指定 `period`、`market`、`p`、`q` 欄位，輸出 Bass cumulative adoption 與 Bass sales。
+- 誤差 index：貼上或上傳資料後指定 actual 與 forecast 欄位，輸出 Forecast Error、MAD、MSE、MAPE。
 
 ## 公式範例
 
@@ -44,7 +45,10 @@ SMA("demand", 5)
 WMA5("demand")
 EXPONENTIAL_SMOOTHING("demand", 0.3)
 NAIVE_FORECAST("demand")
+FORECAST_ERROR("actual", "forecast")
 MAD("actual", "forecast")
+MSE("actual", "forecast")
+MAPE("actual", "forecast")
 BASS([period], [market], [p], [q], "sales")
 BREAKEVEN([fixedCost], [price], [variableCost])
 ```
