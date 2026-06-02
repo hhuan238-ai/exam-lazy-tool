@@ -237,6 +237,9 @@ function getFormulaVariables() {
       extractBracketVariables(model.formula).forEach((variable) => {
         if (!modelNames.has(variable)) variables.add(variable);
       });
+      extractFieldStringVariables(model.formula).forEach((variable) => {
+        if (!modelNames.has(variable)) variables.add(variable);
+      });
     });
 
   return Array.from(variables);
@@ -244,6 +247,108 @@ function getFormulaVariables() {
 
 function extractBracketVariables(formula) {
   return Array.from(formula.matchAll(/\[([^\]]+)\]/g), (match) => match[1].trim()).filter(Boolean);
+}
+
+function extractFieldStringVariables(formula) {
+  const variables = [];
+  const fieldFunctions = new Set([
+    "SUM",
+    "AVERAGE",
+    "MEAN",
+    "COUNT",
+    "MEDIAN",
+    "MODE",
+    "MIN",
+    "MAX",
+    "SD",
+    "STDEVP",
+    "STDEVS",
+    "STDEV.P",
+    "STDEV.S",
+    "VARIANCEP",
+    "VARIANCES",
+    "VAR.P",
+    "VAR.S",
+    "SUMPRODUCT",
+    "EXPECTED",
+    "EV",
+    "EVPI",
+    "RANK",
+    "MOVINGAVERAGE",
+    "MOVING_AVERAGE",
+    "SMA",
+    "SMA2",
+    "SMA5",
+    "SMA20",
+    "WMA",
+    "WMA5",
+    "EXPONENTIALSMOOTHING",
+    "EXPONENTIAL_SMOOTHING",
+    "NAIVEFORECAST",
+    "NAIVE_FORECAST",
+    "FORECASTERROR",
+    "FORECAST_ERROR",
+    "MAD",
+    "MSE",
+    "MAPE",
+    "BASS",
+  ]);
+
+  const callPattern = /([A-Za-z_][A-Za-z0-9_.]*)\s*\(([^()]*)\)/g;
+  let match;
+  while ((match = callPattern.exec(formula)) !== null) {
+    const fnName = match[1].replaceAll("_", "").toUpperCase();
+    const originalName = match[1].toUpperCase();
+    if (!fieldFunctions.has(fnName) && !fieldFunctions.has(originalName)) continue;
+
+    const args = splitFormulaArgs(match[2]);
+    getFieldArgIndexes(originalName, args.length).forEach((index) => {
+      const value = unquote(args[index]);
+      if (value && !isNonFieldString(value)) variables.push(value);
+    });
+  }
+
+  return variables;
+}
+
+function getFieldArgIndexes(fnName, argCount) {
+  if (["BASS"].includes(fnName)) return [0, 1, 2, 3].filter((index) => index < argCount);
+  if (["WMA"].includes(fnName)) return [0];
+  if (["EVPI"].includes(fnName)) return Array.from({ length: argCount }, (_, index) => index);
+  if (["SUMPRODUCT", "EXPECTED", "EV", "FORECASTERROR", "FORECAST_ERROR", "MAD", "MSE", "MAPE"].includes(fnName)) {
+    return [0, 1].filter((index) => index < argCount);
+  }
+  return argCount > 0 ? [0] : [];
+}
+
+function splitFormulaArgs(argsText) {
+  const args = [];
+  let current = "";
+  let quote = "";
+  for (let index = 0; index < argsText.length; index += 1) {
+    const char = argsText[index];
+    if ((char === "'" || char === '"') && argsText[index - 1] !== "\\") {
+      quote = quote === char ? "" : quote || char;
+    }
+    if (char === "," && !quote) {
+      args.push(current.trim());
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+  if (current.trim()) args.push(current.trim());
+  return args;
+}
+
+function unquote(value) {
+  const trimmed = String(value ?? "").trim();
+  if (!/^(['"]).*\1$/.test(trimmed)) return "";
+  return trimmed.slice(1, -1).trim();
+}
+
+function isNonFieldString(value) {
+  return /,/.test(value) || ["asc", "desc", "sales", "cumulative"].includes(value.toLowerCase());
 }
 
 function getColumnMap() {
