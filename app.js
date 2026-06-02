@@ -163,7 +163,8 @@ function runCalculator() {
   let result = "";
   if (activeCalculator === "eoq") {
     const quantity = eoq(values.D, values.S, values.H);
-    result = `EOQ = ${formatCell(quantity)}；年度訂購成本 = ${formatCell(annualOrderingCost(values.D, quantity, values.S))}；年度持有成本 = ${formatCell(annualHoldingCost(quantity, values.H))}`;
+    const integerQuantity = integerOrderQuantity(quantity);
+    result = `EOQ = ${formatCell(quantity)}；整數 Q = ${formatCell(integerQuantity)}；年度訂購成本 = ${formatCell(annualOrderingCost(values.D, integerQuantity, values.S))}；年度持有成本 = ${formatCell(annualHoldingCost(integerQuantity, values.H))}`;
   }
   if (activeCalculator === "rop") {
     const ss = safetyStock(values.z, values.sigma, values.L);
@@ -886,6 +887,11 @@ function eoq(demand, orderCost, holdingCost) {
   const s = Number(orderCost);
   const h = Number(holdingCost);
   return [d, s, h].every((value) => Number.isFinite(value)) && h > 0 ? Math.sqrt((2 * d * s) / h) : 0;
+}
+
+function integerOrderQuantity(quantity) {
+  const q = Number(quantity);
+  return Number.isFinite(q) ? Math.max(1, Math.round(q)) : 0;
 }
 
 function annualOrderingCost(demand, quantity, orderCost) {

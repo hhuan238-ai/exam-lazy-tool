@@ -261,14 +261,16 @@ function runInventoryCalculator() {
 
   if (activeInventory === "eoq") {
     const quantity = eoq(values.D, values.S, values.H);
+    const integerQuantity = integerOrderQuantity(quantity);
     return {
       Model: "EOQ",
       D: values.D,
       S: values.S,
       H: values.H,
       EOQ: formatNumber(quantity),
-      "Annual Ordering Cost": formatNumber(annualOrderingCost(values.D, quantity, values.S)),
-      "Annual Holding Cost": formatNumber(annualHoldingCost(quantity, values.H)),
+      "Integer Q": formatNumber(integerQuantity),
+      "Annual Ordering Cost": formatNumber(annualOrderingCost(values.D, integerQuantity, values.S)),
+      "Annual Holding Cost": formatNumber(annualHoldingCost(integerQuantity, values.H)),
     };
   }
 
@@ -419,6 +421,11 @@ function eoq(demand, orderCost, holdingCost) {
   const s = Number(orderCost);
   const h = Number(holdingCost);
   return [d, s, h].every((value) => Number.isFinite(value)) && h > 0 ? Math.sqrt((2 * d * s) / h) : "";
+}
+
+function integerOrderQuantity(quantity) {
+  const q = Number(quantity);
+  return Number.isFinite(q) ? Math.max(1, Math.round(q)) : "";
 }
 
 function annualOrderingCost(demand, quantity, orderCost) {
