@@ -19,6 +19,36 @@ let models = loadModels();
 let rows = [];
 let outputRows = [];
 let editingId = null;
+let activeCalculator = "eoq";
+
+const calculatorConfig = {
+  eoq: {
+    resultLabel: "EOQ",
+    fields: [
+      { key: "D", label: "D 年需求量", value: "" },
+      { key: "S", label: "S 每次下單成本", value: "" },
+      { key: "H", label: "H 每單位年持有成本", value: "" },
+    ],
+  },
+  rop: {
+    resultLabel: "Reorder Point",
+    fields: [
+      { key: "d", label: "d 每期需求", value: "300" },
+      { key: "L", label: "L Lead time", value: "4" },
+      { key: "z", label: "z service level", value: "2.05" },
+      { key: "sigma", label: "σ 每期需求標準差", value: "90" },
+    ],
+  },
+  newsvendor: {
+    resultLabel: "Newsvendor",
+    fields: [
+      { key: "mu", label: "μ 平均需求", value: "" },
+      { key: "sigma", label: "σ 需求標準差", value: "" },
+      { key: "Cu", label: "Cu 少訂損失", value: "" },
+      { key: "Co", label: "Co 多訂損失", value: "" },
+    ],
+  },
+};
 
 const els = {
   modelForm: document.querySelector("#modelForm"),
@@ -41,6 +71,9 @@ const els = {
   miniMode: document.querySelector("#miniMode"),
   minimizeApp: document.querySelector("#minimizeApp"),
   storageStatus: document.querySelector("#storageStatus"),
+  calcFields: document.querySelector("#calcFields"),
+  calcResult: document.querySelector("#calcResult"),
+  runCalculator: document.querySelector("#runCalculator"),
 };
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -61,6 +94,10 @@ function attachEvents() {
   els.autoMap.addEventListener("click", renderMappingFields);
   els.miniMode?.addEventListener("click", () => window.examLazyTool?.miniMode());
   els.minimizeApp?.addEventListener("click", () => window.examLazyTool?.minimize());
+  els.runCalculator?.addEventListener("click", runCalculator);
+  document.querySelectorAll("[data-calc]").forEach((button) => {
+    button.addEventListener("click", () => selectCalculator(button.dataset.calc));
+  });
 
   if (!window.examLazyTool) {
     els.miniMode?.setAttribute("hidden", "");
@@ -87,6 +124,59 @@ function attachEvents() {
   document.querySelectorAll("[data-models]").forEach((button) => {
     button.addEventListener("click", () => addTemplateModels(button.dataset.models));
   });
+
+  renderCalculator();
+}
+
+function selectCalculator(type) {
+  activeCalculator = type;
+  document.querySelectorAll("[data-calc]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.calc === type);
+  });
+  renderCalculator();
+}
+
+function renderCalculator() {
+  const config = calculatorConfig[activeCalculator];
+  if (!config || !els.calcFields) return;
+  els.calcFields.innerHTML = config.fields
+    .map(
+      (field) => `
+        <label>
+          ${field.label}
+          <input type="number" step="any" data-calc-field="${field.key}" value="${escapeHtml(field.value)}" />
+        </label>
+      `,
+    )
+    .join("");
+  els.calcResult.textContent = "";
+}
+
+function runCalculator() {
+  const values = Object.fromEntries(
+    Array.from(els.calcFields.querySelectorAll("[data-calc-field]")).map((input) => [
+      input.dataset.calcField,
+      Number(input.value),
+    ]),
+  );
+
+  let result = "";
+  if (activeCalculator === "eoq") {
+    result = `EOQ = ${formatCell(eoq(values.D, values.S, values.H))}`;
+  }
+  if (activeCalculator === "rop") {
+    const ss = safetyStock(values.z, values.sigma, values.L);
+    const rop = reorderPoint(values.d, values.L, values.z, values.sigma);
+    result = `Safety Stock = ${formatCell(ss)}；Reorder Point = ${formatCell(rop)}`;
+  }
+  if (activeCalculator === "newsvendor") {
+    const cr = newsvendorCriticalRatio(values.Cu, values.Co);
+    const z = normalInverse(cr);
+    const q = newsvendorQuantity(values.mu, values.sigma, values.Cu, values.Co);
+    result = `Critical Ratio = ${formatCell(cr)}；z = ${formatCell(z)}；Q = ${formatCell(q)}`;
+  }
+
+  els.calcResult.textContent = result;
 }
 
 function addTemplateModels(template) {

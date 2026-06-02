@@ -343,6 +343,51 @@ tr:nth-child(even) td {
   padding: 18px;
 }
 
+.calc-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 18px 18px 0;
+}
+
+.calc-tab {
+  flex: 1 1 140px;
+}
+
+.calc-tab.active {
+  border-color: var(--accent);
+  background: var(--soft);
+  color: var(--accent);
+  font-weight: 800;
+}
+
+.calc-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  padding: 14px 18px 0;
+}
+
+.calc-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px 18px 18px;
+}
+
+.calc-result {
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfb;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  font-weight: 800;
+}
+
 .mapping-row {
   min-width: 0;
 }
