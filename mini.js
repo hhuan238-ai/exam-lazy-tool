@@ -19,6 +19,14 @@ const toolConfig = {
     ],
     sample: "period,market,p,q\n1,1000,0.03,0.38\n2,1000,0.03,0.38\n3,1000,0.03,0.38\n4,1000,0.03,0.38\n5,1000,0.03,0.38",
   },
+  error: {
+    title: "誤差 index",
+    fields: [
+      { key: "actual", label: "實際值", hints: ["actual", "demand", "sales", "value", "實際", "需求"] },
+      { key: "forecast", label: "預測值", hints: ["forecast", "predicted", "prediction", "預測"] },
+    ],
+    sample: "period,actual,forecast\n1,100,90\n2,120,100\n3,80,85\n4,110,100\n5,130,125",
+  },
 };
 
 let activeTool = "forecast";
@@ -149,6 +157,7 @@ function runTool() {
   if (activeTool === "forecast") output = runForecast(map);
   if (activeTool === "smoothing") output = runSmoothing(map);
   if (activeTool === "bass") output = runBass(map);
+  if (activeTool === "error") output = runErrorIndex(map);
 
   lastOutput = output;
   renderTable(output);
@@ -161,19 +170,31 @@ function runForecast(map) {
   const naive = values.map((_, index) => (index > 0 ? values[index - 1] : ""));
 
   return rows.map((row, index) => {
-    const actual = values[index];
-    const naiveError = Number.isFinite(actual) && Number.isFinite(naive[index]) ? actual - naive[index] : "";
     return {
       ...row,
       "Naive Forecast": formatNumber(naive[index]),
-      "Forecast Error": formatNumber(naiveError),
-      MAD: formatNumber(metric(values, naive, "mad")),
-      MSE: formatNumber(metric(values, naive, "mse")),
-      MAPE: formatNumber(metric(values, naive, "mape")),
       "2-SMA": formatNumber(sma(values, index, 2)),
       "5-SMA": formatNumber(sma(values, index, 5)),
       "20-SMA": formatNumber(sma(values, index, 20)),
       "5-WMA": formatNumber(wma(values, index, [1, 2, 3, 4, 5])),
+    };
+  });
+}
+
+function runErrorIndex(map) {
+  const actualValues = rows.map((row) => toNumber(row[map.actual]));
+  const forecastValues = rows.map((row) => toNumber(row[map.forecast]));
+
+  return rows.map((row, index) => {
+    const actual = actualValues[index];
+    const forecast = forecastValues[index];
+    const error = Number.isFinite(actual) && Number.isFinite(forecast) ? actual - forecast : "";
+    return {
+      ...row,
+      "Forecast Error": formatNumber(error),
+      MAD: formatNumber(metric(actualValues, forecastValues, "mad")),
+      MSE: formatNumber(metric(actualValues, forecastValues, "mse")),
+      MAPE: formatNumber(metric(actualValues, forecastValues, "mape")),
     };
   });
 }

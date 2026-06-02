@@ -76,6 +76,10 @@ select {
   background: #b3472f;
 }
 
+.rail-button:nth-child(4) {
+  background: #6d4a9c;
+}
+
 .rail-button.ghost {
   margin-top: auto;
   color: #687476;
