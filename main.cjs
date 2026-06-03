@@ -26,10 +26,6 @@ function createWindow() {
     return { action: "deny" };
   });
 
-  mainWindow.on("minimize", (event) => {
-    event.preventDefault();
-    showMiniMode();
-  });
 }
 
 function createMiniWindow() {
