@@ -96,6 +96,7 @@ NEWSVENDOR_Q([mu], [sigma], [Cu], [Co])
   EOQ 計算機會同時輸出精確 EOQ、整數 Q、年度訂購成本 `D / Q * S` 與年度持有成本 `Q / 2 * H`；年度成本使用精確 EOQ 計算。
 - `SAFETY_STOCK([z], [sigma], [L])`：安全庫存，`z * sigma * sqrt(L)`。
 - `REORDER_POINT([d], [L], [z], [sigma])` / `ROP(...)`：再訂購點，`dL + z * sigma * sqrt(L)`。
+- ROP 計算機若題目已經先算好 lead time 期間需求 `dL`，請填 `dL Lead time demand`，app 會直接用 `dL + Safety Stock`，不再乘一次 `L`。
 - `REORDER_POINT_SS([d], [L], [SS])` / `ROP_SS(...)`：題目直接給 Safety Stock 時使用，`dL + SS`，不使用 `z` 或 `sigma`；若題目給年需求，先把年需求除以 52 再填入 `d`。
 - `NEWSVENDOR_CR([Cu], [Co])`：Newsvendor critical ratio，`Cu / (Cu + Co)`。
 - `NEWSVENDOR_Q([mu], [sigma], [Cu], [Co])`：常態需求下的訂購量，`mu + z * sigma`，其中 `z = NORM_INV(Cu / (Cu + Co))`。

@@ -34,6 +34,7 @@ const calculatorConfig = {
     resultLabel: "Reorder Point",
     fields: [
       { key: "d", label: "d 每期需求（年需求先 / 52）", value: "300" },
+      { key: "dL", label: "dL Lead time demand（已算好才填）", value: "" },
       { key: "L", label: "L Lead time", value: "4" },
       { key: "SS", label: "SS Safety Stock（有給才填）", value: "" },
       { key: "z", label: "z service level", value: "2.05" },
@@ -169,14 +170,14 @@ function runCalculator() {
   }
   if (activeCalculator === "rop") {
     const hasDirectSafetyStock = Number.isFinite(values.SS);
+    const leadDemand = leadTimeDemand(values.d, values.L, values.dL);
     if (hasDirectSafetyStock) {
-      const leadDemand = values.d * values.L;
-      const rop = reorderPointWithSafetyStock(values.d, values.L, values.SS);
+      const rop = reorderPointFromLeadDemand(leadDemand, values.SS);
       result = `Lead time demand = ${formatCell(leadDemand)}；Safety Stock = ${formatCell(values.SS)}；Reorder Point = ${formatCell(rop)}`;
     } else {
       const ss = safetyStock(values.z, values.sigma, values.L);
-      const rop = reorderPoint(values.d, values.L, values.z, values.sigma);
-      result = `Safety Stock = ${formatCell(ss)}；Reorder Point = ${formatCell(rop)}`;
+      const rop = reorderPointFromLeadDemand(leadDemand, ss);
+      result = `Lead time demand = ${formatCell(leadDemand)}；Safety Stock = ${formatCell(ss)}；Reorder Point = ${formatCell(rop)}`;
     }
   }
   if (activeCalculator === "newsvendor") {
@@ -938,6 +939,20 @@ function reorderPointWithSafetyStock(demand, leadTime, safetyStockValue) {
   const lead = Number(leadTime);
   const ss = Number(safetyStockValue);
   return [d, lead, ss].every((value) => Number.isFinite(value)) ? d * lead + ss : 0;
+}
+
+function leadTimeDemand(demand, leadTime, knownLeadDemand) {
+  const direct = Number(knownLeadDemand);
+  if (Number.isFinite(direct)) return direct;
+  const d = Number(demand);
+  const lead = Number(leadTime);
+  return [d, lead].every((value) => Number.isFinite(value)) ? d * lead : 0;
+}
+
+function reorderPointFromLeadDemand(leadDemand, safetyStockValue) {
+  const demandDuringLeadTime = Number(leadDemand);
+  const ss = Number(safetyStockValue);
+  return [demandDuringLeadTime, ss].every((value) => Number.isFinite(value)) ? demandDuringLeadTime + ss : 0;
 }
 
 function numberOrNaN(value) {
