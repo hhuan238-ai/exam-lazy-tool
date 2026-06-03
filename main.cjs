@@ -1,8 +1,9 @@
-const { app, BrowserWindow, Menu, ipcMain, screen, shell } = require("electron");
+const { app, BrowserWindow, Menu, ipcMain, screen, shell, Tray, nativeImage } = require("electron");
 const path = require("path");
 
 let mainWindow;
 let miniWindow;
+let tray;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -26,6 +27,48 @@ function createWindow() {
     return { action: "deny" };
   });
 
+  mainWindow.on("minimize", (event) => {
+    event.preventDefault();
+    minimizeToTray();
+  });
+}
+
+function createTrayIcon() {
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+      <rect width="32" height="32" rx="8" fill="#157a6e"/>
+      <path fill="#ffffff" d="M9 9h14v3H9V9Zm0 5h14v3H9v-3Zm0 5h9v3H9v-3Z"/>
+    </svg>
+  `;
+  return nativeImage.createFromDataURL(`data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`);
+}
+
+function createTray() {
+  if (tray) return tray;
+  tray = new Tray(createTrayIcon());
+  tray.setToolTip("Exam Lazy Tool");
+  tray.setContextMenu(
+    Menu.buildFromTemplate([
+      { label: "打開", click: restoreMainWindow },
+      { label: "側邊模式", click: showMiniMode },
+      { type: "separator" },
+      {
+        label: "結束",
+        click: () => {
+          app.quit();
+        },
+      },
+    ]),
+  );
+  tray.on("click", restoreMainWindow);
+  tray.on("double-click", restoreMainWindow);
+  return tray;
+}
+
+function destroyTray() {
+  if (!tray) return;
+  tray.destroy();
+  tray = null;
 }
 
 function createMiniWindow() {
@@ -72,27 +115,39 @@ function resizeMiniWindow(width, height) {
 }
 
 function showMiniMode() {
-  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.hide();
+  destroyTray();
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.setSkipTaskbar(true);
+    mainWindow.hide();
+  }
   const win = createMiniWindow();
   positionMiniWindow();
   win.showInactive();
 }
 
 function restoreMainWindow() {
+  destroyTray();
   if (miniWindow && !miniWindow.isDestroyed()) miniWindow.hide();
   if (!mainWindow || mainWindow.isDestroyed()) createWindow();
+  mainWindow.setSkipTaskbar(false);
   mainWindow.show();
   mainWindow.restore();
   mainWindow.focus();
+}
+
+function minimizeToTray() {
+  createTray();
+  if (miniWindow && !miniWindow.isDestroyed()) miniWindow.hide();
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  mainWindow.setSkipTaskbar(true);
+  mainWindow.hide();
 }
 
 ipcMain.handle("window:mini", () => showMiniMode());
 ipcMain.handle("window:restore", () => restoreMainWindow());
 ipcMain.handle("mini:expand", () => resizeMiniWindow(410, 650));
 ipcMain.handle("mini:collapse", () => resizeMiniWindow(64, 260));
-ipcMain.handle("window:minimize", () => {
-  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.minimize();
-});
+ipcMain.handle("window:minimize", () => minimizeToTray());
 
 app.whenReady().then(() => {
   Menu.setApplicationMenu(null);
@@ -106,6 +161,7 @@ app.whenReady().then(() => {
 });
 
 app.on("before-quit", () => {
+  destroyTray();
   if (miniWindow && !miniWindow.isDestroyed()) miniWindow.destroy();
 });
 
