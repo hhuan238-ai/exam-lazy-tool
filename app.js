@@ -35,6 +35,7 @@ const calculatorConfig = {
     fields: [
       { key: "d", label: "d 每期需求", value: "300" },
       { key: "L", label: "L Lead time", value: "4" },
+      { key: "periods", label: "每年期數（年需求才填，例如 52）", value: "" },
       { key: "SS", label: "SS Safety Stock（有給才填）", value: "" },
       { key: "z", label: "z service level", value: "2.05" },
       { key: "sigma", label: "σ 每期需求標準差", value: "90" },
@@ -169,11 +170,16 @@ function runCalculator() {
   }
   if (activeCalculator === "rop") {
     const hasDirectSafetyStock = Number.isFinite(values.SS);
-    const ss = hasDirectSafetyStock ? values.SS : safetyStock(values.z, values.sigma, values.L);
-    const rop = hasDirectSafetyStock
-      ? reorderPointWithSafetyStock(values.d, values.L, values.SS)
-      : reorderPoint(values.d, values.L, values.z, values.sigma);
-    result = `Safety Stock = ${formatCell(ss)}；Reorder Point = ${formatCell(rop)}`;
+    if (hasDirectSafetyStock) {
+      const demandPerPeriod = reorderDemandPerPeriod(values.d, values.periods);
+      const leadDemand = demandPerPeriod * values.L;
+      const rop = reorderPointWithSafetyStock(values.d, values.L, values.SS, values.periods);
+      result = `Lead time demand = ${formatCell(leadDemand)}；Safety Stock = ${formatCell(values.SS)}；Reorder Point = ${formatCell(rop)}`;
+    } else {
+      const ss = safetyStock(values.z, values.sigma, values.L);
+      const rop = reorderPoint(values.d, values.L, values.z, values.sigma);
+      result = `Safety Stock = ${formatCell(ss)}；Reorder Point = ${formatCell(rop)}`;
+    }
   }
   if (activeCalculator === "newsvendor") {
     const cr = newsvendorCriticalRatio(values.Cu, values.Co);
@@ -630,7 +636,8 @@ function evaluateFormula(formula, row, allRows, context, rowIndex, columnMap = {
     breakeven: (fixedCost, price, variableCost) => breakevenUnits(fixedCost, price, variableCost),
     eoq: (demand, orderCost, holdingCost) => eoq(demand, orderCost, holdingCost),
     safetyStock: (z, sigma, leadTime) => safetyStock(z, sigma, leadTime),
-    reorderPointSS: (demand, leadTime, safetyStockValue) => reorderPointWithSafetyStock(demand, leadTime, safetyStockValue),
+    reorderPointSS: (demand, leadTime, safetyStockValue, periodsPerYear) =>
+      reorderPointWithSafetyStock(demand, leadTime, safetyStockValue, periodsPerYear),
     reorderPoint: (demand, leadTime, z = 0, sigma = 0) => reorderPoint(demand, leadTime, z, sigma),
     newsvendorCR: (underageCost, overageCost) => newsvendorCriticalRatio(underageCost, overageCost),
     newsvendorQ: (mean, sigma, underageCost, overageCost) => newsvendorQuantity(mean, sigma, underageCost, overageCost),
@@ -675,8 +682,10 @@ function evaluateFormula(formula, row, allRows, context, rowIndex, columnMap = {
     BREAKEVEN: (fixedCost, price, variableCost) => breakevenUnits(fixedCost, price, variableCost),
     EOQ: (demand, orderCost, holdingCost) => eoq(demand, orderCost, holdingCost),
     SAFETY_STOCK: (z, sigma, leadTime) => safetyStock(z, sigma, leadTime),
-    REORDER_POINT_SS: (demand, leadTime, safetyStockValue) => reorderPointWithSafetyStock(demand, leadTime, safetyStockValue),
-    ROP_SS: (demand, leadTime, safetyStockValue) => reorderPointWithSafetyStock(demand, leadTime, safetyStockValue),
+    REORDER_POINT_SS: (demand, leadTime, safetyStockValue, periodsPerYear) =>
+      reorderPointWithSafetyStock(demand, leadTime, safetyStockValue, periodsPerYear),
+    ROP_SS: (demand, leadTime, safetyStockValue, periodsPerYear) =>
+      reorderPointWithSafetyStock(demand, leadTime, safetyStockValue, periodsPerYear),
     REORDER_POINT: (demand, leadTime, z = 0, sigma = 0) => reorderPoint(demand, leadTime, z, sigma),
     ROP: (demand, leadTime, z = 0, sigma = 0) => reorderPoint(demand, leadTime, z, sigma),
     NEWSVENDOR_CR: (underageCost, overageCost) => newsvendorCriticalRatio(underageCost, overageCost),
@@ -929,11 +938,17 @@ function reorderPoint(demand, leadTime, z = 0, sigma = 0) {
   return [d, lead].every((value) => Number.isFinite(value)) ? d * lead + safetyStock(z, sigma, lead) : 0;
 }
 
-function reorderPointWithSafetyStock(demand, leadTime, safetyStockValue) {
-  const d = Number(demand);
+function reorderPointWithSafetyStock(demand, leadTime, safetyStockValue, periodsPerYear) {
+  const d = reorderDemandPerPeriod(demand, periodsPerYear);
   const lead = Number(leadTime);
   const ss = Number(safetyStockValue);
   return [d, lead, ss].every((value) => Number.isFinite(value)) ? d * lead + ss : 0;
+}
+
+function reorderDemandPerPeriod(demand, periodsPerYear) {
+  const d = Number(demand);
+  const periods = Number(periodsPerYear);
+  return Number.isFinite(d) && Number.isFinite(periods) && periods > 0 ? d / periods : d;
 }
 
 function numberOrNaN(value) {

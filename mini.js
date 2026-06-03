@@ -48,6 +48,7 @@ const inventoryConfig = {
     fields: [
       { key: "d", label: "d 每期需求", value: "300" },
       { key: "L", label: "L Lead time", value: "4" },
+      { key: "periods", label: "每年期數（年需求才填，例如 52）", value: "" },
       { key: "SS", label: "SS Safety Stock（有給才填）", value: "" },
       { key: "z", label: "z Service level", value: "2.05" },
       { key: "sigma", label: "σ 每期需求標準差", value: "90" },
@@ -277,20 +278,29 @@ function runInventoryCalculator() {
 
   if (activeInventory === "rop") {
     const hasDirectSafetyStock = Number.isFinite(values.SS);
-    const ss = hasDirectSafetyStock ? values.SS : safetyStock(values.z, values.sigma, values.L);
+    if (hasDirectSafetyStock) {
+      const demandPerPeriod = reorderDemandPerPeriod(values.d, values.periods);
+      const leadDemand = demandPerPeriod * values.L;
+      return {
+        Model: "Reorder Point",
+        d: values.d,
+        L: values.L,
+        "Periods per Year": Number.isFinite(values.periods) ? values.periods : "",
+        "Demand per Period": formatNumber(demandPerPeriod),
+        "Lead Time Demand": formatNumber(leadDemand),
+        "Safety Stock": formatNumber(values.SS),
+        "Reorder Point": formatNumber(reorderPointWithSafetyStock(values.d, values.L, values.SS, values.periods)),
+      };
+    }
+    const ss = safetyStock(values.z, values.sigma, values.L);
     return {
       Model: "Reorder Point",
       d: values.d,
       L: values.L,
-      SS: hasDirectSafetyStock ? values.SS : "",
       z: values.z,
       sigma: values.sigma,
       "Safety Stock": formatNumber(ss),
-      "Reorder Point": formatNumber(
-        hasDirectSafetyStock
-          ? reorderPointWithSafetyStock(values.d, values.L, values.SS)
-          : reorderPoint(values.d, values.L, values.z, values.sigma),
-      ),
+      "Reorder Point": formatNumber(reorderPoint(values.d, values.L, values.z, values.sigma)),
     };
   }
 
@@ -464,11 +474,17 @@ function reorderPoint(demand, leadTime, z = 0, sigma = 0) {
   return [d, lead].every((value) => Number.isFinite(value)) && Number.isFinite(ss) ? d * lead + ss : "";
 }
 
-function reorderPointWithSafetyStock(demand, leadTime, safetyStockValue) {
-  const d = Number(demand);
+function reorderPointWithSafetyStock(demand, leadTime, safetyStockValue, periodsPerYear) {
+  const d = reorderDemandPerPeriod(demand, periodsPerYear);
   const lead = Number(leadTime);
   const ss = Number(safetyStockValue);
   return [d, lead, ss].every((value) => Number.isFinite(value)) ? d * lead + ss : "";
+}
+
+function reorderDemandPerPeriod(demand, periodsPerYear) {
+  const d = Number(demand);
+  const periods = Number(periodsPerYear);
+  return Number.isFinite(d) && Number.isFinite(periods) && periods > 0 ? d / periods : d;
 }
 
 function numberOrNaN(value) {
