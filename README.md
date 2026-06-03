@@ -56,6 +56,7 @@ BASS([period], [market], [p], [q], "sales")
 BREAKEVEN([fixedCost], [price], [variableCost])
 EOQ([D], [S], [H])
 REORDER_POINT([d], [L], [z], [sigma])
+REORDER_POINT_SS([d], [L], [SS])
 SAFETY_STOCK([z], [sigma], [L])
 NEWSVENDOR_CR([Cu], [Co])
 NEWSVENDOR_Q([mu], [sigma], [Cu], [Co])
@@ -95,6 +96,7 @@ NEWSVENDOR_Q([mu], [sigma], [Cu], [Co])
   EOQ 計算機會同時輸出精確 EOQ、整數 Q、年度訂購成本 `D / Q * S` 與年度持有成本 `Q / 2 * H`；年度成本使用整數 Q 計算，比較符合考題解答。
 - `SAFETY_STOCK([z], [sigma], [L])`：安全庫存，`z * sigma * sqrt(L)`。
 - `REORDER_POINT([d], [L], [z], [sigma])` / `ROP(...)`：再訂購點，`dL + z * sigma * sqrt(L)`。
+- `REORDER_POINT_SS([d], [L], [SS])` / `ROP_SS(...)`：題目直接給 Safety Stock 時使用，`dL + SS`。
 - `NEWSVENDOR_CR([Cu], [Co])`：Newsvendor critical ratio，`Cu / (Cu + Co)`。
 - `NEWSVENDOR_Q([mu], [sigma], [Cu], [Co])`：常態需求下的訂購量，`mu + z * sigma`，其中 `z = NORM_INV(Cu / (Cu + Co))`。
 - `NORM_INV(probability)`：標準常態反累積機率，用於查 z 值。

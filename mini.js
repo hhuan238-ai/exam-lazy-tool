@@ -48,6 +48,7 @@ const inventoryConfig = {
     fields: [
       { key: "d", label: "d 每期需求", value: "300" },
       { key: "L", label: "L Lead time", value: "4" },
+      { key: "SS", label: "SS Safety Stock（有給才填）", value: "" },
       { key: "z", label: "z Service level", value: "2.05" },
       { key: "sigma", label: "σ 每期需求標準差", value: "90" },
     ],
@@ -255,7 +256,7 @@ function runInventoryCalculator() {
   const values = Object.fromEntries(
     Array.from(els.inventoryFields.querySelectorAll("[data-inventory-field]")).map((input) => [
       input.dataset.inventoryField,
-      Number(input.value),
+      numberOrNaN(input.value),
     ]),
   );
 
@@ -275,15 +276,21 @@ function runInventoryCalculator() {
   }
 
   if (activeInventory === "rop") {
-    const ss = safetyStock(values.z, values.sigma, values.L);
+    const hasDirectSafetyStock = Number.isFinite(values.SS);
+    const ss = hasDirectSafetyStock ? values.SS : safetyStock(values.z, values.sigma, values.L);
     return {
       Model: "Reorder Point",
       d: values.d,
       L: values.L,
+      SS: hasDirectSafetyStock ? values.SS : "",
       z: values.z,
       sigma: values.sigma,
       "Safety Stock": formatNumber(ss),
-      "Reorder Point": formatNumber(reorderPoint(values.d, values.L, values.z, values.sigma)),
+      "Reorder Point": formatNumber(
+        hasDirectSafetyStock
+          ? reorderPointWithSafetyStock(values.d, values.L, values.SS)
+          : reorderPoint(values.d, values.L, values.z, values.sigma),
+      ),
     };
   }
 
@@ -455,6 +462,18 @@ function reorderPoint(demand, leadTime, z = 0, sigma = 0) {
   const lead = Number(leadTime);
   const ss = safetyStock(z, sigma, lead);
   return [d, lead].every((value) => Number.isFinite(value)) && Number.isFinite(ss) ? d * lead + ss : "";
+}
+
+function reorderPointWithSafetyStock(demand, leadTime, safetyStockValue) {
+  const d = Number(demand);
+  const lead = Number(leadTime);
+  const ss = Number(safetyStockValue);
+  return [d, lead, ss].every((value) => Number.isFinite(value)) ? d * lead + ss : "";
+}
+
+function numberOrNaN(value) {
+  const text = String(value ?? "").trim();
+  return text === "" ? NaN : Number(text);
 }
 
 function newsvendorCriticalRatio(underageCost, overageCost) {

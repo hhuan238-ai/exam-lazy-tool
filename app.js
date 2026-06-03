@@ -35,6 +35,7 @@ const calculatorConfig = {
     fields: [
       { key: "d", label: "d 每期需求", value: "300" },
       { key: "L", label: "L Lead time", value: "4" },
+      { key: "SS", label: "SS Safety Stock（有給才填）", value: "" },
       { key: "z", label: "z service level", value: "2.05" },
       { key: "sigma", label: "σ 每期需求標準差", value: "90" },
     ],
@@ -156,7 +157,7 @@ function runCalculator() {
   const values = Object.fromEntries(
     Array.from(els.calcFields.querySelectorAll("[data-calc-field]")).map((input) => [
       input.dataset.calcField,
-      Number(input.value),
+      numberOrNaN(input.value),
     ]),
   );
 
@@ -167,8 +168,11 @@ function runCalculator() {
     result = `EOQ = ${formatCell(quantity)}；整數 Q = ${formatCell(integerQuantity)}；年度訂購成本 = ${formatCell(annualOrderingCost(values.D, integerQuantity, values.S))}；年度持有成本 = ${formatCell(annualHoldingCost(integerQuantity, values.H))}`;
   }
   if (activeCalculator === "rop") {
-    const ss = safetyStock(values.z, values.sigma, values.L);
-    const rop = reorderPoint(values.d, values.L, values.z, values.sigma);
+    const hasDirectSafetyStock = Number.isFinite(values.SS);
+    const ss = hasDirectSafetyStock ? values.SS : safetyStock(values.z, values.sigma, values.L);
+    const rop = hasDirectSafetyStock
+      ? reorderPointWithSafetyStock(values.d, values.L, values.SS)
+      : reorderPoint(values.d, values.L, values.z, values.sigma);
     result = `Safety Stock = ${formatCell(ss)}；Reorder Point = ${formatCell(rop)}`;
   }
   if (activeCalculator === "newsvendor") {
@@ -626,6 +630,7 @@ function evaluateFormula(formula, row, allRows, context, rowIndex, columnMap = {
     breakeven: (fixedCost, price, variableCost) => breakevenUnits(fixedCost, price, variableCost),
     eoq: (demand, orderCost, holdingCost) => eoq(demand, orderCost, holdingCost),
     safetyStock: (z, sigma, leadTime) => safetyStock(z, sigma, leadTime),
+    reorderPointSS: (demand, leadTime, safetyStockValue) => reorderPointWithSafetyStock(demand, leadTime, safetyStockValue),
     reorderPoint: (demand, leadTime, z = 0, sigma = 0) => reorderPoint(demand, leadTime, z, sigma),
     newsvendorCR: (underageCost, overageCost) => newsvendorCriticalRatio(underageCost, overageCost),
     newsvendorQ: (mean, sigma, underageCost, overageCost) => newsvendorQuantity(mean, sigma, underageCost, overageCost),
@@ -670,6 +675,8 @@ function evaluateFormula(formula, row, allRows, context, rowIndex, columnMap = {
     BREAKEVEN: (fixedCost, price, variableCost) => breakevenUnits(fixedCost, price, variableCost),
     EOQ: (demand, orderCost, holdingCost) => eoq(demand, orderCost, holdingCost),
     SAFETY_STOCK: (z, sigma, leadTime) => safetyStock(z, sigma, leadTime),
+    REORDER_POINT_SS: (demand, leadTime, safetyStockValue) => reorderPointWithSafetyStock(demand, leadTime, safetyStockValue),
+    ROP_SS: (demand, leadTime, safetyStockValue) => reorderPointWithSafetyStock(demand, leadTime, safetyStockValue),
     REORDER_POINT: (demand, leadTime, z = 0, sigma = 0) => reorderPoint(demand, leadTime, z, sigma),
     ROP: (demand, leadTime, z = 0, sigma = 0) => reorderPoint(demand, leadTime, z, sigma),
     NEWSVENDOR_CR: (underageCost, overageCost) => newsvendorCriticalRatio(underageCost, overageCost),
@@ -920,6 +927,18 @@ function reorderPoint(demand, leadTime, z = 0, sigma = 0) {
   const d = Number(demand);
   const lead = Number(leadTime);
   return [d, lead].every((value) => Number.isFinite(value)) ? d * lead + safetyStock(z, sigma, lead) : 0;
+}
+
+function reorderPointWithSafetyStock(demand, leadTime, safetyStockValue) {
+  const d = Number(demand);
+  const lead = Number(leadTime);
+  const ss = Number(safetyStockValue);
+  return [d, lead, ss].every((value) => Number.isFinite(value)) ? d * lead + ss : 0;
+}
+
+function numberOrNaN(value) {
+  const text = String(value ?? "").trim();
+  return text === "" ? NaN : Number(text);
 }
 
 function newsvendorCriticalRatio(underageCost, overageCost) {
