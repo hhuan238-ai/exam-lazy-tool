@@ -93,7 +93,7 @@ NEWSVENDOR_Q([mu], [sigma], [Cu], [Co])
 - `BASS([period], [market], [p], [q], "sales")`：Bass model 當期採用量。
 - `BREAKEVEN([fixedCost], [price], [variableCost])`：損益兩平銷售量。
 - `EOQ([D], [S], [H])`：經濟訂購量，`sqrt(2DS / H)`。
-  EOQ 計算機會同時輸出精確 EOQ、整數 Q、年度訂購成本 `D / Q * S` 與年度持有成本 `Q / 2 * H`；年度成本使用整數 Q 計算，比較符合考題解答。
+  EOQ 計算機會同時輸出精確 EOQ、整數 Q、年度訂購成本 `D / Q * S` 與年度持有成本 `Q / 2 * H`；年度成本使用精確 EOQ 計算。
 - `SAFETY_STOCK([z], [sigma], [L])`：安全庫存，`z * sigma * sqrt(L)`。
 - `REORDER_POINT([d], [L], [z], [sigma])` / `ROP(...)`：再訂購點，`dL + z * sigma * sqrt(L)`。
 - `REORDER_POINT_SS([d], [L], [SS])` / `ROP_SS(...)`：題目直接給 Safety Stock 時使用，`dL + SS`，不使用 `z` 或 `sigma`；若題目給年需求，先把年需求除以 52 再填入 `d`。

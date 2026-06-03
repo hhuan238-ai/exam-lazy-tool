@@ -165,7 +165,7 @@ function runCalculator() {
   if (activeCalculator === "eoq") {
     const quantity = eoq(values.D, values.S, values.H);
     const integerQuantity = integerOrderQuantity(quantity);
-    result = `EOQ = ${formatCell(quantity)}；整數 Q = ${formatCell(integerQuantity)}；年度訂購成本 = ${formatCell(annualOrderingCost(values.D, integerQuantity, values.S))}；年度持有成本 = ${formatCell(annualHoldingCost(integerQuantity, values.H))}`;
+    result = `EOQ = ${formatCell(quantity)}；整數 Q = ${formatCell(integerQuantity)}；年度訂購成本 = ${formatCell(annualOrderingCost(values.D, quantity, values.S))}；年度持有成本 = ${formatCell(annualHoldingCost(quantity, values.H))}`;
   }
   if (activeCalculator === "rop") {
     const hasDirectSafetyStock = Number.isFinite(values.SS);

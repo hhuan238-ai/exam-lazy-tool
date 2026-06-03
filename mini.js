@@ -270,8 +270,8 @@ function runInventoryCalculator() {
       H: values.H,
       EOQ: formatNumber(quantity),
       "Integer Q": formatNumber(integerQuantity),
-      "Annual Ordering Cost": formatNumber(annualOrderingCost(values.D, integerQuantity, values.S)),
-      "Annual Holding Cost": formatNumber(annualHoldingCost(integerQuantity, values.H)),
+      "Annual Ordering Cost": formatNumber(annualOrderingCost(values.D, quantity, values.S)),
+      "Annual Holding Cost": formatNumber(annualHoldingCost(quantity, values.H)),
     };
   }
 
