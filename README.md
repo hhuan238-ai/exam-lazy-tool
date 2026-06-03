@@ -99,7 +99,7 @@ NEWSVENDOR_Q([mu], [sigma], [Cu], [Co])
 - ROP 計算機的 `d` 請填「每期需求」；若題目給年需求，先用 `年需求 / 以 lead time 為基準的期數` 換算後再填入 `d`。
 - `REORDER_POINT_SS([d], [L], [SS])` / `ROP_SS(...)`：題目直接給 Safety Stock 時使用，`dL + SS`，不使用 `z` 或 `sigma`。
 - `NEWSVENDOR_CR([Cu], [Co])`：Newsvendor critical ratio，`Cu / (Cu + Co)`。
-- `NEWSVENDOR_Q([mu], [sigma], [Cu], [Co])`：常態需求下的訂購量，`mu + z * sigma`，其中 `z = NORM_INV(Cu / (Cu + Co))`。
+- `NEWSVENDOR_Q([mu], [sigma], [Cu], [Co])`：常態需求下的訂購量，`mu + z * sigma`；為貼近考題查表解法，`z` 會先四捨五入到小數點後 2 位再代入。
 - `NORM_INV(probability)`：標準常態反累積機率，用於查 z 值。
 
 ## 變數對應

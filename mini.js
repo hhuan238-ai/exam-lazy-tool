@@ -303,7 +303,7 @@ function runInventoryCalculator() {
   }
 
   const cr = newsvendorCriticalRatio(values.Cu, values.Co);
-  const z = normalInverse(cr);
+  const z = newsvendorZ(cr);
   return {
     Model: "Newsvendor",
     mu: values.mu,
@@ -489,6 +489,10 @@ function newsvendorCriticalRatio(underageCost, overageCost) {
   const co = Number(overageCost);
   const denominator = cu + co;
   return [cu, co, denominator].every((value) => Number.isFinite(value)) && denominator !== 0 ? cu / denominator : "";
+}
+
+function newsvendorZ(criticalRatio) {
+  return roundToTwo(normalInverse(criticalRatio));
 }
 
 function normalInverse(probability) {

@@ -182,7 +182,7 @@ function runCalculator() {
   }
   if (activeCalculator === "newsvendor") {
     const cr = newsvendorCriticalRatio(values.Cu, values.Co);
-    const z = normalInverse(cr);
+    const z = newsvendorZ(cr);
     const q = newsvendorQuantity(values.mu, values.sigma, values.Cu, values.Co);
     result = `Critical Ratio = ${formatCell(cr)}；z = ${formatCell(z)}；Q = ${formatCell(q)}`;
   }
@@ -958,8 +958,12 @@ function newsvendorQuantity(mean, sigma, underageCost, overageCost) {
   const stdDev = Number(sigma);
   const criticalRatio = newsvendorCriticalRatio(underageCost, overageCost);
   return [mu, stdDev, criticalRatio].every((value) => Number.isFinite(value))
-    ? mu + normalInverse(criticalRatio) * stdDev
+    ? mu + newsvendorZ(criticalRatio) * stdDev
     : 0;
+}
+
+function newsvendorZ(criticalRatio) {
+  return roundToTwo(normalInverse(criticalRatio));
 }
 
 function normalInverse(probability) {
