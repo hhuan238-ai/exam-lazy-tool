@@ -566,7 +566,7 @@ function normalizeRow(row) {
 
 function rowsToCsv(dataset) {
   const headers = getHeaders(dataset);
-  return [headers.join(","), ...dataset.map((row) => headers.map((header) => csvEscape(row[header] ?? "")).join(","))].join("\n");
+  return [headers.join(","), ...dataset.map((row) => headers.map((header) => csvEscape(formatNumber(row[header] ?? ""))).join(","))].join("\n");
 }
 
 function renderTable(dataset) {
@@ -581,7 +581,7 @@ function renderTable(dataset) {
     <thead><tr>${headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr></thead>
     <tbody>
       ${dataset
-        .map((row) => `<tr>${headers.map((header) => `<td>${escapeHtml(row[header] ?? "")}</td>`).join("")}</tr>`)
+        .map((row) => `<tr>${headers.map((header) => `<td>${escapeHtml(formatNumber(row[header] ?? ""))}</td>`).join("")}</tr>`)
         .join("")}
     </tbody>
   `;
@@ -646,7 +646,11 @@ function toNumber(value) {
 }
 
 function formatNumber(value) {
-  return typeof value === "number" && Number.isFinite(value) ? Number.parseFloat(value.toFixed(6)) : value;
+  return typeof value === "number" && Number.isFinite(value) ? roundToTwo(value) : value;
+}
+
+function roundToTwo(value) {
+  return Number.parseFloat(value.toFixed(2));
 }
 
 function normalizeKey(value) {

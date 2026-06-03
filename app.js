@@ -1112,7 +1112,7 @@ function rowsToCsv(dataset) {
   const headers = getHeaders(dataset);
   return [
     headers.map(csvEscape).join(","),
-    ...dataset.map((row) => headers.map((header) => csvEscape(row[header] ?? "")).join(",")),
+    ...dataset.map((row) => headers.map((header) => csvEscape(formatCell(row[header] ?? ""))).join(",")),
   ].join("\n");
 }
 
@@ -1151,8 +1151,12 @@ function toNumber(value) {
 }
 
 function formatCell(value) {
-  if (typeof value === "number" && Number.isFinite(value)) return Number.parseFloat(value.toFixed(6));
+  if (typeof value === "number" && Number.isFinite(value)) return roundToTwo(value);
   return value;
+}
+
+function roundToTwo(value) {
+  return Number.parseFloat(value.toFixed(2));
 }
 
 function updateMessage(text, type = "") {
