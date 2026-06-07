@@ -8,7 +8,7 @@
   "scripts": {
     "start": "electron .",
     "build:dir": "electron-builder --dir",
-    "package:win": "electron-packager . \"Exam Lazy Tool\" --platform=win32 --arch=x64 --out=release --overwrite --prune=true --ignore=\"^/dist($|/)\" --ignore=\"^/release($|/)\"",
+    "package:win": "electron-packager . \"Exam Lazy Tool\" --platform=win32 --arch=x64 --out=release --overwrite --prune=true --ignore=\"^/dist($|/)\" --ignore=\"^/release($|/)\" --ignore=\"\\.zip$\"",
     "build": "electron-builder --win nsis portable",
     "build:portable": "electron-builder --win portable"
   },
