@@ -62,6 +62,15 @@ const inventoryConfig = {
       { key: "Co", label: "Co 多訂損失", value: "" },
     ],
   },
+  bass: {
+    title: "Bass",
+    fields: [
+      { key: "p", label: "p Innovation coefficient", value: "" },
+      { key: "q", label: "q Imitation coefficient", value: "" },
+      { key: "m", label: "m Market potential", value: "" },
+      { key: "period", label: "週期 / Period", value: "1" },
+    ],
+  },
 };
 
 let activeTool = "forecast";
@@ -302,6 +311,19 @@ function runInventoryCalculator() {
     };
   }
 
+  if (activeInventory === "bass") {
+    return {
+      Model: "Bass",
+      p: values.p,
+      q: values.q,
+      m: values.m,
+      Period: values.period,
+      "First Year Adopters": formatNumber(bassFirstYearAdopters(values.m, values.p)),
+      "Period Adopters": formatNumber(bassDiscreteAdopters(values.period, values.m, values.p, values.q)),
+      "Cumulative Adopters": formatNumber(bassDiscreteCumulative(values.period, values.m, values.p, values.q)),
+    };
+  }
+
   const cr = newsvendorCriticalRatio(values.Cu, values.Co);
   const z = newsvendorZ(cr);
   return {
@@ -429,6 +451,38 @@ function bass(period, market, p, q, metricName) {
     return (market * (1 - growth)) / (1 + (q / p) * growth);
   };
   return metricName === "sales" ? cumulative(period) - cumulative(period - 1) : cumulative(period);
+}
+
+function bassFirstYearAdopters(marketSize, innovation) {
+  const m = Number(marketSize);
+  const p = Number(innovation);
+  return [m, p].every((value) => Number.isFinite(value)) ? p * m : "";
+}
+
+function bassDiscreteSeries(period, marketSize, innovation, imitation) {
+  const t = Math.max(0, Math.floor(Number(period)));
+  const m = Number(marketSize);
+  const p = Number(innovation);
+  const q = Number(imitation);
+  if (![t, m, p, q].every((value) => Number.isFinite(value)) || m <= 0 || p < 0 || q < 0) {
+    return { periodAdopters: "", cumulative: "" };
+  }
+
+  let cumulative = 0;
+  let periodAdopters = 0;
+  for (let year = 1; year <= t; year += 1) {
+    periodAdopters = (p + q * (cumulative / m)) * (m - cumulative);
+    cumulative += periodAdopters;
+  }
+  return { periodAdopters, cumulative };
+}
+
+function bassDiscreteAdopters(period, marketSize, innovation, imitation) {
+  return bassDiscreteSeries(period, marketSize, innovation, imitation).periodAdopters;
+}
+
+function bassDiscreteCumulative(period, marketSize, innovation, imitation) {
+  return bassDiscreteSeries(period, marketSize, innovation, imitation).cumulative;
 }
 
 function eoq(demand, orderCost, holdingCost) {
