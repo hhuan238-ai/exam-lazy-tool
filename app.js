@@ -55,6 +55,7 @@ const calculatorConfig = {
       { key: "p", label: "p Innovation coefficient", value: "" },
       { key: "q", label: "q Imitation coefficient", value: "" },
       { key: "m", label: "m Market potential", value: "" },
+      { key: "firstYearAdopters", label: "第 1 年採用數 / 採購量", value: "" },
       { key: "period", label: "週期 / Period", value: "1" },
     ],
   },
@@ -196,10 +197,9 @@ function runCalculator() {
     result = `Critical Ratio = ${formatCell(cr)}；z = ${formatCell(z)}；Q = ${formatCell(q)}`;
   }
   if (activeCalculator === "bass") {
-    const firstYear = bassFirstYearAdopters(values.m, values.p);
-    const periodAdopters = bassDiscreteAdopters(values.period, values.m, values.p, values.q);
-    const cumulative = bassDiscreteCumulative(values.period, values.m, values.p, values.q);
-    result = `第 1 年採用數 = ${formatCell(firstYear)}；第 ${formatCell(values.period)} 期採用數 = ${formatCell(periodAdopters)}；累積採用數 = ${formatCell(cumulative)}`;
+    const periodAdopters = bassDiscreteAdopters(values.period, values.m, values.p, values.q, values.firstYearAdopters);
+    const cumulative = bassDiscreteCumulative(values.period, values.m, values.p, values.q, values.firstYearAdopters);
+    result = `第 ${formatCell(values.period)} 期採用數 = ${formatCell(periodAdopters)}；累積採用數 = ${formatCell(cumulative)}`;
   }
 
   els.calcResult.textContent = result;
@@ -901,36 +901,31 @@ function bassModel(period, marketSize, innovation, imitation, metric = "cumulati
   return cumulative(t);
 }
 
-function bassFirstYearAdopters(marketSize, innovation) {
-  const m = Number(marketSize);
-  const p = Number(innovation);
-  return [m, p].every((value) => Number.isFinite(value)) ? p * m : 0;
-}
-
-function bassDiscreteSeries(period, marketSize, innovation, imitation) {
+function bassDiscreteSeries(period, marketSize, innovation, imitation, firstYearAdopters) {
   const t = Math.max(0, Math.floor(Number(period)));
   const m = Number(marketSize);
   const p = Number(innovation);
   const q = Number(imitation);
-  if (![t, m, p, q].every((value) => Number.isFinite(value)) || m <= 0 || p < 0 || q < 0) {
+  const firstYear = Number(firstYearAdopters);
+  if (![t, m, p, q, firstYear].every((value) => Number.isFinite(value)) || m <= 0 || p < 0 || q < 0 || firstYear < 0) {
     return { periodAdopters: 0, cumulative: 0 };
   }
 
   let cumulative = 0;
   let periodAdopters = 0;
   for (let year = 1; year <= t; year += 1) {
-    periodAdopters = (p + q * (cumulative / m)) * (m - cumulative);
+    periodAdopters = year === 1 ? firstYear : (p + q * (cumulative / m)) * (m - cumulative);
     cumulative += periodAdopters;
   }
   return { periodAdopters, cumulative };
 }
 
-function bassDiscreteAdopters(period, marketSize, innovation, imitation) {
-  return bassDiscreteSeries(period, marketSize, innovation, imitation).periodAdopters;
+function bassDiscreteAdopters(period, marketSize, innovation, imitation, firstYearAdopters) {
+  return bassDiscreteSeries(period, marketSize, innovation, imitation, firstYearAdopters).periodAdopters;
 }
 
-function bassDiscreteCumulative(period, marketSize, innovation, imitation) {
-  return bassDiscreteSeries(period, marketSize, innovation, imitation).cumulative;
+function bassDiscreteCumulative(period, marketSize, innovation, imitation, firstYearAdopters) {
+  return bassDiscreteSeries(period, marketSize, innovation, imitation, firstYearAdopters).cumulative;
 }
 
 function breakevenUnits(fixedCost, price, variableCost) {

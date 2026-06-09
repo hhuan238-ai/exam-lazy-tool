@@ -91,7 +91,7 @@ NEWSVENDOR_Q([mu], [sigma], [Cu], [Co])
 - `MAPE("actual", "forecast")`：平均絕對百分比誤差，百分比單位。
 - `BASS([period], [market], [p], [q])`：Bass model 累積採用量。
 - `BASS([period], [market], [p], [q], "sales")`：Bass model 當期採用量。
-- Bass 計算機可直接輸入 `p`、`q`、`m`、週期；第 1 年採用數使用 `p * m`，後續週期使用離散 Bass 公式逐期推算。
+- Bass 計算機可直接輸入 `p`、`q`、`m`、週期與第 1 年採用數；週期 1 使用你輸入的第 1 年採用數，後續週期使用離散 Bass 公式逐期推算。
 - `BREAKEVEN([fixedCost], [price], [variableCost])`：損益兩平銷售量。
 - `EOQ([D], [S], [H])`：經濟訂購量，`sqrt(2DS / H)`。
   EOQ 計算機會同時輸出精確 EOQ、整數 Q、年度訂購成本 `D / Q * S` 與年度持有成本 `Q / 2 * H`；年度成本使用精確 EOQ 計算。
